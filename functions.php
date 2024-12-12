@@ -1495,11 +1495,11 @@ function read_container_devan_member_screen($post_data)
     if ($post_data['date'] == 'today') {
         //$query = "SELECT * FROM {$tblContainerDevan} WHERE `revan_state` = 'scheduled' ORDER BY `date` ASC LIMIT 1";
         $query
-            = "SELECT TOP 1 * FROM {$tblContainerDevan} WHERE [date] >= '{$today}' AND is_completed = 0 AND inbound_renban_air_freight_case_number!='' ORDER BY [date] ASC";
+            = "SELECT TOP 1 * FROM {$tblContainerDevan} WHERE [date] >= '{$today}' AND is_completed = 0 AND inbound_renban_air_freight_case_number!='' ORDER BY [date], shift ASC";
     } else {
         $date = convert_date_string($post_data['date']);
         $query
-            = "SELECT TOP 1 * FROM {$tblContainerDevan} WHERE [date] >= '{$date}' AND is_completed = 0  AND inbound_renban_air_freight_case_number!='' ORDER BY [date] ASC";
+            = "SELECT TOP 1 * FROM {$tblContainerDevan} WHERE [date] >= '{$date}' AND is_completed = 0  AND inbound_renban_air_freight_case_number!='' ORDER BY [date], shift ASC";
     }
 
     $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);

@@ -353,6 +353,7 @@ require_once("assets.php");
     <script src="assets/js/adminlte.min.js"></script>
     <script src="assets/js/custom.js"></script>
     <script>
+        var completedZones = [];
         $(document).ready(function() {
             $(document).keypress(function(event) {
                 // console.log(event.key);
@@ -550,6 +551,8 @@ require_once("assets.php");
                             $("#current_kanban_part_number").hide();
                             $("#current_address").text("");
                             $("#current_addressdel").text("");
+                            completedZones.push(zone_text.toUpperCase());
+                            playAudio('assets/audio/kanban_complete.wav');
                         } else {
                             $("#current_kanban").text(result.kanban);
                             $("#current_kanban_part_number").show();
@@ -726,7 +729,11 @@ require_once("assets.php");
                     var kanban_no = $("#current_kanban").text();
                     var location = $("#current_address").text();
                     var part_num = $("#current_kanban_part_num").val();
-
+                    if(completedZones.includes(value)){
+                        playAudio('assets/audio/kanban_complete.wav');
+                        $("#kanban_input").val('');
+                        return false;
+                    }
                     if (input_type == 'kanban') {
                         if (value == kanban_no || value == part_num) {
                             $("#input_type").val('location');
@@ -744,7 +751,9 @@ require_once("assets.php");
                                 $("#kanban_input").focus();
                                 return false;
                             } else {
-                                if (value1.search(part_num) != -1 || value1.search(kanban_no) != -1) {
+                                console.log(value1.search(part_num));
+                                console.log(value1.search(kanban_no));
+                                if (part_num != "" && (value1.search(part_num) != -1 || value1.search(kanban_no) != -1)) {
                                     $("#input_type").val('location');
                                     $("#kanban_input").val('');
                                     $("#kanban_input").attr('placeholder', 'Address or Part No');
