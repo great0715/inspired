@@ -132,10 +132,10 @@ require_once("assets.php");
         $start_date = date('Y-m-d', strtotime('previous sunday', strtotime($this_month_start)));
         $this_month_end = date("Y-m-t", strtotime($this_month_start));
         $end_date = date('Y-m-d', strtotime('next monday', strtotime($this_month_end)));
-        $query = "SELECT * FROM {$tblContainerDevan} WHERE `date` BETWEEN  '{$start_date}' AND '{$end_date}' ORDER BY `date` ASC LIMIT 1";
-        $result = $db->query($query);
-        if (mysqli_num_rows($result) > 0) {
-            $row = mysqli_fetch_object($result);
+        $query = "SELECT TOP 1 * FROM {$tblContainerDevan} WHERE [date] BETWEEN  '{$start_date}' AND '{$end_date}' ORDER BY [date] ASC";
+        $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+        if (sqlsrv_num_rows($result) > 0) {
+            $row = sqlsrv_fetch_object($result);
             $approved_by = $row->approved_by;
         } else {
             $approved_by = '';

@@ -86,4 +86,22 @@ $STOCKING_AREAS = array(
     'Free Location'
 );
 
+function getLastInsertedId($con){
+    $sql = "SELECT SCOPE_IDENTITY() AS LastInsertedId";
+    $stmt = sqlsrv_query($con, $sql);
+    
+    if ($stmt === false) {
+        die(print_r(sqlsrv_errors(), true));
+    }
+    
+    $row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
+    return $row['LastInsertedId'];
+}
+
+
 $websocketKey = "eYiAbBPGoDi2mtsi3OQme5M7GIRAFDUz";
+
+function mssql_escape($str) {
+    $str = (string) $str;
+    return str_replace("'", "''", $str);
+}

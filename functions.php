@@ -42,12 +42,12 @@ function convert_date_string($date)
 
 function get_setting($set_type)
 {
-    global $db, $tblSettings;
+    global $dbMssql, $tblSettings;
     $query
-        = "SELECT * FROM {$tblSettings} WHERE set_type = '{$set_type}' limit 1";
-    $result = $db->query($query);
-    if ($result && mysqli_num_rows($result) > 0) {
-        $setting = mysqli_fetch_object($result);
+        = "SELECT TOP 1 * FROM {$tblSettings} WHERE set_type = '{$set_type}'";
+    $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+    if ($result && sqlsrv_num_rows($result) > 0) {
+        $setting = sqlsrv_fetch_object($result);
         return $setting->set_value;
     } else {
         return '';
@@ -89,7 +89,7 @@ function get_cycle_setting()
 
 function update_setting($set_type, $set_value)
 {
-    global $db, $tblSettings;
+    global $dbMssql, $tblSettings;
     $old_setting = get_setting($set_type);
     if ($old_setting != '') {
         $sql
@@ -99,7 +99,7 @@ function update_setting($set_type, $set_value)
             = "INSERT INTO {$tblSettings} (set_value, set_type) VALUES ('{$set_value}', '{$set_type}')";
     }
 
-    return $db->query($sql);
+    return sqlsrv_query($dbMssql, $sql);
 }
 
 function save_setting($post_data)
@@ -909,21 +909,15 @@ function read_scan_table($post_data)
 
 function set_help_alarm($post_data)
 {
-    global $db, $tblHelpAlarm, $_SESSION;
+    global $dbMssql, $tblHelpAlarm, $_SESSION;
     $page = $post_data['page'];
     $user_id = $_SESSION['user']['user_id'];
-    /*$query = "SELECT * FROM {$tblHelpAlarm} WHERE `is_confirm` = 0 AND `page` = '{$page}' LIMIT 1";
-    $result = $db->query($query);
-    if (mysqli_num_rows($result) > 0) {
-    $row = mysqli_fetch_object($result);
-    $sql = "UPDATE {$tblHelpAlarm} SET `clicked_time` = NOW() WHERE id = {$row->id}";
-    $db->query($sql);
-    $help_id = $row->id;
-    } else*/ {
+    {
         $sql
-            = "INSERT INTO {$tblHelpAlarm}  (`user_id`, `clicked_time`, `is_confirm`, `page`) values ('{$user_id}', NOW(), 0, '{$page}') ";
-        $db->query($sql);
-        $help_id = $db->insert_id;
+            = "INSERT INTO {$tblHelpAlarm}  (user_id, clicked_time, is_confirm, [page]) values ('{$user_id}', GETDATE(), 0, '{$page}') ";
+
+        $result = sqlsrv_query($dbMssql, $sql);
+        $help_id = getLastInsertedId($dbMssql);
     }
 
     if ($page == 'Container Devan') {
@@ -985,17 +979,11 @@ function get_help_alarm_for_overview($page)
 
 function confirm_help_alarm($post_data)
 {
-    global $db, $tblHelpAlarm, $_SESSION;
+    global $dbMssql, $tblHelpAlarm, $_SESSION;
     $alarm_id = $post_data['alarm_id'];
-    // if (isset($post_data['confirm_user_id']))
-    //     $user_id = $post_data['confirm_user_id'];
-    // else
-    //     $user_id = $_SESSION['user']['user_id'];
-
-    // $query = "UPDATE {$tblHelpAlarm} SET is_confirm = 1, confirm_user_id = '{$user_id}', confirm_time = NOW() WHERE id = {$alarm_id}";
     $query
-        = "UPDATE {$tblHelpAlarm} SET is_confirm = 1, turnoff_time = NOW() WHERE id = {$alarm_id}";
-    $db->query($query);
+        = "UPDATE {$tblHelpAlarm} SET is_confirm = 1, turnoff_time = GETDATE() WHERE id = {$alarm_id}";
+    sqlsrv_query($dbMssql, $query);
 }
 
 function get_overview_screen()
@@ -1254,26 +1242,27 @@ function read_stock_level()
 
 function get_container_devan($start, $end)
 {
-    global $db, $tblContainerDevan;
+    global $dbMssql, $tblContainerDevan;
     $query
-        = "SELECT * FROM {$tblContainerDevan} WHERE `date` BETWEEN  '{$start}' AND '{$end}' ORDER BY `date` ASC, `time` ASC";
-    $result = $db->query($query);
+        = "SELECT * FROM {$tblContainerDevan} WHERE [date] BETWEEN  '{$start}' AND '{$end}' ORDER BY [date] ASC, [time] ASC";
+    $result = sqlsrv_query($dbMssql, $query);
     $items = [];
-    while ($row = mysqli_fetch_array($result)) {
-        array_push($items, $row);
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $items[] = $row;
     }
+
     return $items;
 }
 
 function update_container_devan($post_data)
 {
-    global $db, $tblContainerDevan;
+    global $dbMssql, $tblContainerDevan;
     $value = $post_data['value'];
     $field = $post_data['field'];
     $row_id = $post_data['row_id'];
     $update_query
-        = "UPDATE {$tblContainerDevan} SET `{$field}` = '{$value}' WHERE id = {$row_id}";
-    $result = $db->query($update_query);
+        = "UPDATE {$tblContainerDevan} SET [{$field}] = '{$value}' WHERE id = {$row_id}";
+    $result = sqlsrv_query($dbMssql, $update_query);
     if ($result) {
         echo 'Success';
     } else {
@@ -1283,30 +1272,30 @@ function update_container_devan($post_data)
 
 function complete_container_devan($post_data)
 {
-    global $db, $tblContainerDevan, $_SESSION;
+    global $dbMssql, $tblContainerDevan, $_SESSION;
 
     $row_id = $post_data['row_id'];
     $user_id = $_SESSION['user']['user_id'];
     $revan_state = $post_data['renban'];
 
-    $query1 = "SELECT * FROM {$tblContainerDevan} WHERE id = {$row_id}";
-    $r1 = $db->query($query1);
-    $row1 = mysqli_fetch_array($r1);
-
-
     if ($revan_state == 'revan') {
         $update_query
-            = "UPDATE {$tblContainerDevan} SET `revan_state` = '{$revan_state}' WHERE id = {$row_id}";
+            = "UPDATE {$tblContainerDevan} SET revan_state = '{$revan_state}' WHERE id = {$row_id}";
     } else {
         $update_query
-            = "UPDATE {$tblContainerDevan} SET `is_completed` = 1, `completed_at` = NOW(), `completed_by` = '{$user_id}', `revan_state` = 'completed' WHERE id = {$row_id}";
+            = "UPDATE {$tblContainerDevan} SET is_completed = 1, completed_at = GETDATE(), completed_by = '{$user_id}', revan_state = 'completed' WHERE id = {$row_id}";
     }
-    $result = $db->query($update_query);
+
+    $result = sqlsrv_query($dbMssql, $update_query);
 
     if ($result) {
         $query = "SELECT * FROM {$tblContainerDevan} WHERE id = {$row_id}";
-        $r = $db->query($query);
-        $row = mysqli_fetch_array($r);
+        $r = sqlsrv_query($dbMssql, $query);
+        $row1 = [];
+        while ($rt = sqlsrv_fetch_array($r, SQLSRV_FETCH_ASSOC)) {
+            $row1[] = $rt;
+        }
+
         $pre_fix = get_setting('renban_no_prefix');
 
         if ($row1['revan_state'] == 'scheduled') {
@@ -1349,7 +1338,7 @@ function read_container_devan($post_data)
     $pre_date = '';
     if (count($container_devan) > 0) {
         foreach ($container_devan as $index => $row) {
-            $date = $row['date'];
+            $date = $row['date']->format('Y-m-d');
             $week_day = date('l', strtotime($date));
             if ($pre_date != $date) {
                 if ($week_day == 'Monday') {
@@ -1501,25 +1490,27 @@ function read_container_devan($post_data)
 
 function read_container_devan_member_screen($post_data)
 {
-    global $db, $tblContainerDevan, $today;
+    global $dbMssql, $tblContainerDevan, $today;
 
     if ($post_data['date'] == 'today') {
         //$query = "SELECT * FROM {$tblContainerDevan} WHERE `revan_state` = 'scheduled' ORDER BY `date` ASC LIMIT 1";
         $query
-            = "SELECT * FROM {$tblContainerDevan} WHERE `date` >= '{$today}' AND `is_completed` = 0 AND `inbound_renban_air_freight_case_number`!='' ORDER BY `date` ASC LIMIT 1";
+            = "SELECT TOP 1 * FROM {$tblContainerDevan} WHERE [date] >= '{$today}' AND is_completed = 0 AND inbound_renban_air_freight_case_number!='' ORDER BY [date] ASC";
     } else {
         $date = convert_date_string($post_data['date']);
         $query
-            = "SELECT * FROM {$tblContainerDevan} WHERE `date` >= '{$date}' AND `is_completed` = 0  AND `inbound_renban_air_freight_case_number`!='' ORDER BY `date` ASC LIMIT 1";
+            = "SELECT TOP 1 * FROM {$tblContainerDevan} WHERE [date] >= '{$date}' AND is_completed = 0  AND inbound_renban_air_freight_case_number!='' ORDER BY [date] ASC";
     }
 
-    $result = $db->query($query);
-    if (mysqli_num_rows($result) > 0) {
-        $devan = mysqli_fetch_array($result);
-        //var_dump($devan);exit();
-        //Update Renban No
+    $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+    if (sqlsrv_num_rows($result) > 0) {
+        $devans = [];
+        while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+            $devans[] = $row;
+        }
+        
         $renban_no = get_setting('renban_no_prefix');
-        //$renban_no = update_renban_no($devan['id']);
+        $devan = $devans[0];
 
         echo '<div class="row" style="background-color: #1797FF; color: #FFF;">';
         echo '<div class="offset-md-2 col-md-7" style="padding: 50px 10px; min-width: 650px;">';
@@ -1550,7 +1541,7 @@ function read_container_devan_member_screen($post_data)
 
         //Date, Shift and Time
         echo '<h1 style="font-size: 48px;"><span style="margin-right: 148px;">'
-            . date('d/m/Y', strtotime($devan['date']))
+            . $devan['date']->format('d/m/Y')
             . '</span><span style="margin-right: 60px;">' . $shift . '</span><span>'
             . $devan['time'] . '</span></h1>';
         //Container Renban
@@ -1997,12 +1988,12 @@ function update_renban_no($devan_id)
 
 function update_revan_state($post_data)
 {
-    global $db, $tblContainerDevan;
+    global $dbMssql, $tblContainerDevan;
     $container_number = $post_data['container_number'];
     $today = date('Y-m-d');
     $query
-        = "UPDATE {$tblContainerDevan} SET revan_state = 'scheduled' WHERE in_house_container_number = '{$container_number}' AND `date` >= '{$today}'";
-    $result = $db->query($query);
+        = "UPDATE {$tblContainerDevan} SET revan_state = 'scheduled' WHERE in_house_container_number = '{$container_number}' AND [date] >= '{$today}'";
+    $result = sqlsrv_query($dbMssql, $query);
     if ($result) {
         echo $today;
     } else {
@@ -3369,17 +3360,20 @@ function read_kanban_box($post_data)
                 $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
                 $num_rows = sqlsrv_num_rows($result);
             } else {
-                if (
-                    $post_data['cycle']
-                    == -1
-                )
+                if ($zone != 'All') //Help or Other filters
                 {
-                    $query
-                        = "SELECT * FROM {$tblConveyancePicks} WHERE is_delivered=0 AND kanban_date = '{$pick_date}' AND cycle=1 ORDER BY is_help ASC, is_delivered ASC, imported_at ASC, kanban ASC";
-                } else {
-                    $query
-                        = "SELECT * FROM {$tblConveyancePicks} WHERE is_delivered=0 AND kanban_date = '{$pick_date}' AND cycle={$post_data['cycle']} ORDER BY is_help ASC, is_delivered ASC, imported_at ASC, kanban ASC";
+                    if ($zone != 'Help') //other filter
+                    {
+                        $query = "SELECT * FROM {$tblConveyancePicks} WHERE is_delivered=0 AND kanban_date = '{$pick_date}' AND cycle='{$post_data['cycle']}' AND dolly = '{$zone}' ORDER BY is_help ASC, is_delivered ASC, imported_at ASC, kanban ASC";
+                    } else //Help filter
+                    {
+                        $query = "SELECT * FROM {$tblConveyancePicks} WHERE is_delivered=0 AND kanban_date = '{$pick_date}' AND cycle='{$post_data['cycle']}' AND is_help=1 ORDER BY is_help ASC, is_delivered ASC, imported_at ASC, kanban ASC";
+                    }
+                } else // All filter
+                {
+                    $query = "SELECT * FROM {$tblConveyancePicks} WHERE is_delivered=0 AND kanban_date = '{$pick_date}' AND cycle='{$cur}' ORDER BY is_help ASC, is_delivered ASC, imported_at ASC, kanban ASC";
                 }
+                
                 $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
                 $num_rows = sqlsrv_num_rows($result);
             }
@@ -3408,6 +3402,9 @@ function read_kanban_box($post_data)
             );
         }
 
+        if($num_rows == 0 && $status='delivery'){
+            $data['is_delivered'] = 1;
+        }
         if ($num_rows > 0) {
             $res = [];
             while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
@@ -3586,23 +3583,38 @@ function read_pick_list($post_data)
     if (isset($post_data['zone'])) {
         $zone = $post_data['zone'];
     }
-    
-    {
+    $cur = $post_data['cycle'];
+    if ($cur == -1) $cur =  1;
+    if ($status == 'pick') {
         if ($zone != '0') //Help or Other filters
         {
             if ($zone != 'Help') //other filter
             {
                 $query
-                    = "SELECT cp.* FROM {$tblConveyancePicks} as cp WHERE cp.kanban_date = '{$pick_date}' AND cp.cycle='{$post_data['cycle']}' AND cp.dolly = '{$zone}' ORDER BY cp.address ASC, cp.is_help ASC, cp.is_completed ASC, cp.is_delivered ASC, cp.imported_at ASC, cp.pick_seq ASC, cp.kanban ASC";
+                    = "SELECT cp.* FROM {$tblConveyancePicks} as cp WHERE cp.kanban_date = '{$pick_date}' AND cp.cycle='{$cur}' AND cp.dolly = '{$zone}' ORDER BY cp.address ASC, cp.is_help ASC, cp.is_completed ASC, cp.is_delivered ASC, cp.imported_at ASC, cp.pick_seq ASC, cp.kanban ASC";
             } else //Help filter
             {
                 $query
-                    = "SELECT cp.* FROM {$tblConveyancePicks} as cp WHERE cp.kanban_date = '{$pick_date}' AND cp.cycle='{$post_data['cycle']}' AND cp.is_help = 1 ORDER BY cp.address ASC, cp.is_help ASC, cp.is_completed ASC, cp.is_delivered ASC, cp.imported_at ASC, cp.pick_seq ASC, cp.kanban ASC";
+                    = "SELECT cp.* FROM {$tblConveyancePicks} as cp WHERE cp.kanban_date = '{$pick_date}' AND cp.cycle='{$cur}' AND cp.is_help = 1 ORDER BY cp.address ASC, cp.is_help ASC, cp.is_completed ASC, cp.is_delivered ASC, cp.imported_at ASC, cp.pick_seq ASC, cp.kanban ASC";
             }
         } else // All filter
         {
             $query
-                = "SELECT * FROM {$tblConveyancePicks} WHERE dolly != '' AND kanban_date = '{$pick_date}' AND cycle='{$post_data['cycle']}' ORDER BY [address] ASC, is_help ASC, is_completed ASC, imported_at ASC, pick_seq ASC, kanban ASC";
+                = "SELECT * FROM {$tblConveyancePicks} WHERE dolly != '' AND kanban_date = '{$pick_date}' AND cycle='{$cur}' ORDER BY [address] ASC, is_help ASC, is_completed ASC, imported_at ASC, pick_seq ASC, kanban ASC";
+        }
+    }else{
+        if ($zone != '0') //Help or Other filters
+        {
+            if ($zone != 'Help') //other filter
+            {
+                $query = "SELECT * FROM {$tblConveyancePicks} WHERE kanban_date = '{$pick_date}' AND cycle='{$cur}' AND dolly = '{$zone}' ORDER BY is_help ASC, is_delivered ASC, imported_at ASC, kanban ASC";
+            } else //Help filter
+            {
+                $query = "SELECT * FROM {$tblConveyancePicks} WHERE is_delivered=0 AND kanban_date = '{$pick_date}' AND cycle='{$cur}' AND is_help=1 ORDER BY is_help ASC, is_delivered ASC, imported_at ASC, kanban ASC";
+            }
+        } else // All filter
+        {
+            $query = "SELECT * FROM {$tblConveyancePicks} WHERE dolly != '' AND kanban_date = '{$pick_date}' AND cycle='{$cur}' ORDER BY is_help ASC, is_delivered ASC, imported_at ASC, kanban ASC";
         }
     }
 

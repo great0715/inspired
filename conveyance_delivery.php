@@ -509,7 +509,6 @@ require_once("assets.php");
                 }).done(function(result) {
                     // if(result.is_completed == "1")
                     // alert("completed");
-                    console.log('read_kanban_box : ', result);
                     var zones = result.zones;
                     html = '<option value=0 selected>All</option>';
                     for (var i = 0; i < zones.length; i++) {
@@ -537,36 +536,50 @@ require_once("assets.php");
                         $("#pick_status").text(result.pick_status);
                         return false;
                     } else {
+                        console.log(result);
                         $("#current_kanban_id").val(result.kanban_id);
-                        var current_kanban_html = '';
-                        if (result.part_number) {
-                            current_kanban_html = '<span style="color: red; font-size: 20px;">Part No.</span><span style="color: #FFF; font-size: 20px;">' + result.part_number + '</span>'
+                        if (result.part_number)
+                            var current_kanban_html =
+                                '<span style="color: #fa0000; font-size: 15px;">Part No:</span><span style="color: #FFF; font-size: 30px;">' +
+                                result.part_number + '</span>'
+                        else
+                            var current_kanban_html =
+                                '<span style="color: #fa0000; font-size: 15px;">Part No:</span><span style="color: #FFF; font-size: 30px;"></span>'
+                        if (result.is_delivered == 1) {
+                            $("#current_kanban").text("Zone Complete - Scan Next Zone");
+                            $("#current_kanban_part_number").hide();
+                            $("#current_address").text("");
+                            $("#current_addressdel").text("");
                         } else {
-                            playAudio('assets/audio/Part_missing.wav');
-                            current_kanban_html = '<span style="color: red; font-size: 20px;">Part No.</span><span style="color: #FFF; font-size: 20px;"></span>'
+                            $("#current_kanban").text(result.kanban);
+                            $("#current_kanban_part_number").show();
+                            $("#current_kanban_part_number").html(current_kanban_html);
+                            $("#current_address").text(result.address);
+                            $("#current_addressdel").text(result.delivery_address);
                         }
-                        $("#current_kanban").text(result.kanban);
-                        $("#current_kanban_part_number").html(current_kanban_html);
                         $("#current_kanban_part_num").val(result.part_number);
-                        $("#current_address").text(result.delivery_address);
                         $("#button_dolly").text(result.dolly);
                         $("#button_dolly").css('background-color', result.dolly_color);
                         $("#pick_status").text(result.pick_status);
                         $("#is_help").val(result.is_help);
+                        // console.log("BBBBB: ", result.is_help, result.is_completed)
                         if (result.is_help == 1 && result.is_delivered == 0) {
+                            // alert("is_help")
+                            $("#is_help").val(result.is_help);
                             $(".finish-box").removeClass('blue-kanban');
                             $(".finish-box").removeClass('green-kanban');
+                            $(".finish-box").removeClass('bg-green');
                             $(".finish-box").addClass('red-kanban');
                         }
 
                         if (result.is_help == 0 && result.is_delivered == 0) {
                             $(".finish-box").removeClass('green-kanban');
                             $(".finish-box").removeClass('red-kanban');
+                            $(".finish-box").removeClass('bg-green');
                             $(".finish-box").addClass('blue-kanban');
                         }
 
-                        if (result.is_help == 0 && result.is_delivered == 1) {
-                            // alert("completed kanban");
+                        if (result.is_delivered == 1) {
                             $(".finish-box").removeClass('blue-kanban');
                             $(".finish-box").removeClass('red-kanban');
                             $(".finish-box").addClass('green-kanban');
@@ -645,14 +658,14 @@ require_once("assets.php");
 
                     if (result == 'in_progress') {
                         $("#btn_finish").attr('href', '#');
-                        // $(".finish-box").removeClass('bg-green');
-                        // $(".finish-box").removeClass('bg-red');
+                        $("#btn_finish").removeClass('bg-green');
+                        $("#btn_finish").addClass('bg-blue');
                     }
 
                     if (result == 'in_help') {
                         $("#btn_finish").attr('href', '#');
-                        // $(".finish-box").removeClass('bg-green');
-                        // $(".finish-box").addClass('bg-red');
+                        $("#btn_finish").addClass('bg-blue');
+                        $("#btn_finish").removeClass('bg-green');
                     }
                 });
             }
@@ -890,6 +903,7 @@ require_once("assets.php");
             })
 
             $("#zone_select").on("change", function() {
+                $("#kanban_id").val(0);
                 read_kanban_box();
                 playAudio('assets/audio/Zone_selected.wav');
             })

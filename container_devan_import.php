@@ -84,35 +84,35 @@ if (0 < $_FILES['file']['error']) {
                     $date = $records[$index][0];
 
                     $shift = $records[$index][1];
-                    $chk_query = "SELECT id FROM {$tblContainerDevan} WHERE `date` = '{$date}' AND `shift` = '{$shift}'";
-                    $chk_result = $db->query($chk_query);
-                    if (mysqli_num_rows($chk_result) > 0) {
-                        $line = mysqli_fetch_object($chk_result);
+                    $chk_query = "SELECT id FROM {$tblContainerDevan} WHERE [date] = '{$date}' AND [shift] = '{$shift}'";
+                    $chk_result = sqlsrv_query($dbMssql, $chk_query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+                    if (sqlsrv_num_rows($chk_result) > 0) {
+                        $line = sqlsrv_fetch_object($chk_result);
                         $old_id = $line->id;
                         foreach ($records[$index] as $key => $rowValue) {
-                            $records[$index][$key] = $db->real_escape_string($rowValue);
+                            $records[$index][$key] = mssql_escape($rowValue);
                         }
-                        $update_query = "UPDATE {$tblContainerDevan} SET `time` = '{$records[$index][2]}', 
-                                            `inbound_renban_air_freight_case_number` = '{$records[$index][3]}',
-                                            `shipping_line` = '{$records[$index][4]}',
-                                            `container_number` = '{$records[$index][5]}',
-                                            `pentalver_instructions` = '{$records[$index][6]}',
-                                            `departure_inbound_renban` = '{$records[$index][7]}',
-                                            `departure_shipping_line` = '{$records[$index][8]}',
-                                            `departure_container_number` = '{$records[$index][9]}',
-                                            `on_dock_inbound_renban` = '{$records[$index][10]}',
-                                            `on_dock_shipping_line` = '{$records[$index][11]}',
-                                            `on_doc_container_number` = '{$records[$index][12]}',
-                                            `in_house_instructions` = '{$records[$index][13]}',
-                                            `devan_inbound_renban_no_1` = '{$records[$index][14]}',
-                                            `devan_shipping_line` = '{$records[$index][15]}',
-                                            `in_house_container_number` = '{$records[$index][16]}',
-                                            `expected_seal_no` = '{$records[$index][17]}',
-                                            `deeside_yard_inbound_renban_no_1` = '{$records[$index][18]}',
-                                            `deeside_yard_container_number_no_1` = '{$records[$index][19]}',
-                                            `approved_by` = '{$records[$index][20]}' WHERE id = {$old_id}
+                        $update_query = "UPDATE {$tblContainerDevan} SET [time] = '{$records[$index][2]}', 
+                                            [inbound_renban_air_freight_case_number] = '{$records[$index][3]}',
+                                            [shipping_line] = '{$records[$index][4]}',
+                                            [container_number] = '{$records[$index][5]}',
+                                            [pentalver_instructions] = '{$records[$index][6]}',
+                                            [departure_inbound_renban] = '{$records[$index][7]}',
+                                            [departure_shipping_line] = '{$records[$index][8]}',
+                                            [departure_container_number] = '{$records[$index][9]}',
+                                            [on_dock_inbound_renban] = '{$records[$index][10]}',
+                                            [on_dock_shipping_line] = '{$records[$index][11]}',
+                                            [on_doc_container_number] = '{$records[$index][12]}',
+                                            [in_house_instructions] = '{$records[$index][13]}',
+                                            [devan_inbound_renban_no_1] = '{$records[$index][14]}',
+                                            [devan_shipping_line] = '{$records[$index][15]}',
+                                            [in_house_container_number] = '{$records[$index][16]}',
+                                            [expected_seal_no] = '{$records[$index][17]}',
+                                            [deeside_yard_inbound_renban_no_1] = '{$records[$index][18]}',
+                                            [deeside_yard_container_number_no_1] = '{$records[$index][19]}',
+                                            [approved_by] = '{$records[$index][20]}' WHERE id = {$old_id}
                                             ";
-                        $res = $db->query($update_query);
+                        $res = sqlsrv_query($dbMssql, $update_query);
                     } else {
                         $index++;
                     }
@@ -121,17 +121,17 @@ if (0 < $_FILES['file']['error']) {
 
             //var_dump($records);exit();
             if (count($records) > 2) {
-                $fields = "`" . implode("`, `", array_shift($records)) . "`";
+                $fields = "[" . implode("], [", array_shift($records)) . "]";
                 $values = array();
                 foreach ($records as $rowValues) {
                     foreach ($rowValues as $key => $rowValue) {
-                        $rowValues[$key] = $db->real_escape_string($rowValue);
+                        $rowValues[$key] = mssql_escape($rowValue);
                     }
                     $values[] = "('" . implode("', '", $rowValues) . "')";
                 }
 
                 $query = "INSERT INTO {$tblContainerDevan} ($fields) VALUES " . implode(', ', $values);
-                $result = $db->query($query);
+                $result = sqlsrv_query($dbMssql, $query);
             }
             echo 'Success';
         } catch (Exception $e) {
