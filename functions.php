@@ -426,7 +426,7 @@ function get_user_names($user_ids)
 
 function save_lane($post_data)
 {
-    global $db, $tblStocking, $STOCKING_AREAS;
+    global $dbMssql, $tblStocking, $STOCKING_AREAS;
     $area_index = $post_data['area_index'];
     $lane_id = $post_data['lane_id'];
     $lane_no = $post_data['lane_no'];
@@ -437,13 +437,13 @@ function save_lane($post_data)
     $height = $post_data['height'];
     $area = $STOCKING_AREAS[$area_index];
     if ($lane_id == 0) {
-        $query = "INSERT INTO {$tblStocking}  (`lane_no`, `barcode_in`, `barcode_out`, `allocation`, `height`, `area`)
+        $query = "INSERT INTO {$tblStocking}  (lane_no, barcode_in, barcode_out, allocation, height, area)
                     value ('{$lane_no}', '{$barcode_in}', '{$barcode_out}', '{$allocation}', '{$height}', '{$area}')";
     } else {
-        $query = "UPDATE {$tblStocking} SET `lane_no` = '{$lane_no}', `barcode_in` = '{$barcode_in}', `barcode_out` = '{$barcode_out}',
-                    `allocation` = '{$allocation}', `height` = '{$height}' WHERE `id` = {$lane_id}";
+        $query = "UPDATE {$tblStocking} SET lane_no = '{$lane_no}', barcode_in = '{$barcode_in}', barcode_out = '{$barcode_out}',
+                    allocation = '{$allocation}', height = '{$height}' WHERE id = {$lane_id}";
     }
-    $result = $db->query($query);
+    $result = sqlsrv_query($dbMssql, $query);
     if ($result) {
         echo 'Ok';
     } else {
@@ -453,16 +453,17 @@ function save_lane($post_data)
 
 function get_all_lanes($area, $order = null)
 {
-    global $db, $tblStocking;
+    global $dbMssql, $tblStocking;
     if ($order == null) {
-        $query = "SELECT * FROM {$tblStocking} WHERE `area` = '{$area}'";
+        $query = "SELECT * FROM {$tblStocking} WHERE area = '{$area}'";
     } else {
-        $query = "SELECT * FROM {$tblStocking} WHERE `area` = '{$area}' "
+        $query = "SELECT * FROM {$tblStocking} WHERE area = '{$area}' "
             . $order;
     }
-    $result = $db->query($query);
+
+    $result = sqlsrv_query($dbMssql, $query);
     $lanes = [];
-    while ($lane = mysqli_fetch_object($result)) {
+    while ($lane = sqlsrv_fetch_object($result)) {
         array_push($lanes, $lane);
     }
 
@@ -503,10 +504,10 @@ function read_lanes($post_data)
 
 function get_lane_by_id($lane_id)
 {
-    global $db, $tblStocking;
-    $query = "SELECT * FROM {$tblStocking} WHERE `id` = {$lane_id}";
-    $result = $db->query($query);
-    return mysqli_fetch_object($result);
+    global $dbMssql, $tblStocking;
+    $query = "SELECT * FROM {$tblStocking} WHERE id = {$lane_id}";
+    $result = sqlsrv_query($dbMssql, $query);
+    return sqlsrv_fetch_object($result);
 }
 
 function get_lane($post_data)
@@ -518,10 +519,10 @@ function get_lane($post_data)
 
 function delete_lane($post_data)
 {
-    global $db, $tblStocking;
+    global $dbMssql, $tblStocking;
     $lane_id = $post_data['lane_id'];
-    $query = "DELETE FROM {$tblStocking} WHERE `id` = {$lane_id}";
-    $result = $db->query($query);
+    $query = "DELETE FROM {$tblStocking} WHERE id = {$lane_id}";
+    $result = sqlsrv_query($dbMssql, $query);
     if ($result) {
         echo 'Ok';
     } else {
@@ -541,11 +542,11 @@ function set_stocking_action($post_data)
  */
 function get_all_parts()
 {
-    global $db, $tblParts;
-    $query = "SELECT * FROM {$tblParts} ORDER BY `part_no`";
-    $result = $db->query($query);
+    global $dbMssql, $tblParts;
+    $query = "SELECT * FROM {$tblParts} ORDER BY part_no";
+    $result = sqlsrv_query($dbMssql, $query);
     $parts = [];
-    while ($part = mysqli_fetch_object($result)) {
+    while ($part = sqlsrv_fetch_object($result)) {
         array_push($parts, $part);
     }
     return $parts;
@@ -600,7 +601,7 @@ function read_parts()
 
 function save_part($post_data)
 {
-    global $db, $tblParts;
+    global $dbMssql, $tblParts;
     $part_id = $post_data['part_id'] ? $post_data['part_id'] : 0;
     $part_no = $post_data['part_no'];
     $part_name = $post_data['part_name'];
@@ -611,13 +612,13 @@ function save_part($post_data)
     $ps = $post_data['ps_check'] == 'true' ? 1 : 0;
     $fl = $post_data['fl_check'] == 'true' ? 1 : 0;
     if ($part_id == 0) {
-        $query = "INSERT INTO {$tblParts}  (`part_no`, `part_name`, `amount`, `sf`, `ps`, `fl`, `level_low`, `level_medium`)
+        $query = "INSERT INTO {$tblParts}  (part_no, part_name, amount, sf, ps, fl, level_low, level_medium)
                     value ('{$part_no}', '{$part_name}', '{$amount}', {$sf}, {$ps}, {$fl}, {$level_low}, {$level_medium})";
     } else {
         $query
-            = "UPDATE {$tblParts} SET `part_no` = '{$part_no}', `part_name` = '{$part_name}', `amount` = '{$amount}', `sf` = '{$sf}', `ps` = '{$ps}', `fl` = '{$fl}', `level_low` = '{$level_low}', `level_medium` = '{$level_medium}' WHERE `id` = {$part_id}";
+            = "UPDATE {$tblParts} SET part_no = '{$part_no}', part_name = '{$part_name}', amount = '{$amount}', sf = '{$sf}', ps = '{$ps}', fl = '{$fl}', level_low = '{$level_low}', level_medium = '{$level_medium}' WHERE id = {$part_id}";
     }
-    $result = $db->query($query);
+    $result = sqlsrv_query($dbMssql, $query);
     if ($result) {
         echo 'Ok';
     } else {
@@ -627,18 +628,25 @@ function save_part($post_data)
 
 function get_part_by_id($id)
 {
-    global $db, $tblParts;
-    $query = "SELECT * FROM {$tblParts} WHERE `id` = {$id}";
-    $result = $db->query($query);
-    return mysqli_fetch_object($result);
+    global $dbMssql, $tblParts;
+    $query = "SELECT * FROM {$tblParts} WHERE id = {$id}";
+    $result = sqlsrv_query($dbMssql, $query);
+    return sqlsrv_fetch_object($result);
 }
 
 function get_part_by_no($no)
 {
-    global $db, $tblParts;
-    $query = "SELECT * FROM {$tblParts} WHERE `part_no` = '{$no}' LIMIT 1";
-    $result = $db->query($query);
-    return mysqli_fetch_array($result);
+    global $dbMssql, $tblParts;
+    $query = "SELECT TOP 1 * FROM {$tblParts} WHERE part_no = '{$no}'";
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $res[] = $row;
+    }
+    if(count($res) > 0)
+        return $res[0];
+    else
+        return $res;
 }
 
 function get_part($post_data)
@@ -650,10 +658,10 @@ function get_part($post_data)
 
 function delete_part($post_data)
 {
-    global $db, $tblParts;
+    global $dbMssql, $tblParts;
     $part_id = $post_data['part_id'];
-    $query = "DELETE FROM {$tblParts} WHERE `id` = {$part_id}";
-    $result = $db->query($query);
+    $query = "DELETE FROM {$tblParts} WHERE id = {$part_id}";
+    $result = sqlsrv_query($dbMssql, $query);
     if ($result) {
         echo 'Ok';
     } else {
@@ -666,7 +674,7 @@ function delete_part($post_data)
  */
 function read_barcode($post_data)
 {
-    global $db, $tblStocking, $tblScanLog, $_SESSION;
+    global $dbMssql, $tblStocking, $tblScanLog, $_SESSION;
     $flag = false;
     $shift_id = $post_data['shift_id'];
     $shift_date = $post_data['shift_date'];
@@ -684,13 +692,18 @@ function read_barcode($post_data)
         }
         $lane_barcode = $lane_barcodes[$index];
         $part = get_part_by_no($part_barcode);
+        
         if ($part) {
             //Get Lane Information
-            $query
-                = "SELECT * FROM {$tblStocking} WHERE `barcode_in` = '{$lane_barcode}' LIMIT 1";
-            $result = $db->query($query);
-            if (mysqli_num_rows($result) > 0) {
-                $row = mysqli_fetch_array($result);
+            $query = "SELECT TOP 1 * FROM {$tblStocking} WHERE barcode_in = '{$lane_barcode}'";
+ 
+            $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+            if (sqlsrv_num_rows($result) > 0) {
+                $rows = [];
+                while ($r = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+                    $rows[] = $r;
+                }
+                $row = $rows[0];
                 if ($row['area'] == 'Free Location') {
                     goto a;
                 }
@@ -704,30 +717,28 @@ function read_barcode($post_data)
                     $lane_id = $row['id'];
                     $allocation = $row['allocation'];
                     //Get left allocation
-                    $query
-                        = "SELECT * FROM {$tblScanLog} WHERE `lane_id` = '{$lane_id}' AND `booked_in` = 1 AND `booked_out` = 0";
-                    $result = $db->query($query);
-                    $allocated = mysqli_num_rows($result);
+                    $query = "SELECT * FROM {$tblScanLog} WHERE lane_id = '{$lane_id}' AND booked_in = 1 AND booked_out = 0";
+                    
+                    $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+                    $allocated = sqlsrv_num_rows($result);
                     $left_allocation = $allocation - $allocated;
                     $stocking_action = $_SESSION['stocking_action'];
                     if ($stocking_action == 'in') {
                         if ($left_allocation > 0) {
-                            $query = "INSERT INTO {$tblScanLog}  (`part`, `lane_id`, `booked_in`, `booked_out`, `page`, `shift`, `shift_date`, `user_id`, `booked_in_time`)
-                                    value ('{$part_barcode}', '{$lane_id}', 1, 0, '{$page}', '{$shift_id}', '{$shift_date}', {$user_id}, NOW())";
-                            $db->query($query);
+                            $query = "INSERT INTO {$tblScanLog}  (part, lane_id, booked_in, booked_out, page, shift, shift_date, user_id, booked_in_time)
+                                    values ('{$part_barcode}', '{$lane_id}', 1, 0, '{$page}', '{$shift_id}', '{$shift_date}', {$user_id}, GETDATE())";
+                            sqlsrv_query($dbMssql, $query);
                         } else {
                             $data['error'] = 'Lane allocation already was 0.';
                         }
                     } else {
-                        $query
-                            = "SELECT * FROM {$tblScanLog} WHERE `part` = '{$part_barcode}' AND `lane_id` = '{$lane_id}' AND `booked_in` = 1 AND `booked_out` = 0";
-                        $result = $db->query($query);
-                        $chk = mysqli_num_rows($result);
+                        $query = "SELECT * FROM {$tblScanLog} WHERE part = '{$part_barcode}' AND lane_id = '{$lane_id}' AND booked_in = 1 AND booked_out = 0";
+                        $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+                        $chk = sqlsrv_num_rows($result);
                         if ($chk > 0) {
-                            $scanned = mysqli_fetch_object($result);
-                            $update
-                                = "UPDATE {$tblScanLog} SET `booked_out` = 1, `out_user_id` = {$user_id}, `booked_out_time` = NOW() WHERE id = {$scanned->id}";
-                            $db->query($update);
+                            $scanned = sqlsrv_fetch_object($result);
+                            $update = "UPDATE {$tblScanLog} SET booked_out = 1, out_user_id = {$user_id}, booked_out_time = GETDATE() WHERE id = {$scanned->id}";
+                            sqlsrv_query($dbMssql, $update);
                         } else {
                             $data['error'] = 'There is no scanned in lane';
                         }
@@ -749,12 +760,14 @@ function read_barcode($post_data)
                 $lane_num = $lane_str_prefix . "1";
                 $lane_index = intval(substr($lane_str, $ind_no));
 
-                $query
-                    = "SELECT * FROM {$tblStocking} WHERE `area` = 'Free Location' AND `barcode_in` = '{$lane_num}' LIMIT 1";
-                $result = $db->query($query);
-                if (mysqli_num_rows($result) > 0) {
-                    $row = mysqli_fetch_array($result);
-
+                $query = "SELECT TOP 1 * FROM {$tblStocking} WHERE area = 'Free Location' AND barcode_in = '{$lane_num}'";
+                $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+                if (sqlsrv_num_rows($result) > 0) {
+                    $rows = [];
+                    while ($r = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+                        $rows[] = $r;
+                    }
+                    $row = $rows[0];
                     if (
                         ($row['area'] == 'System Fill') && ($part['sf'] == 0)
                         || ($row['area'] == 'Part Stocking')
@@ -767,30 +780,28 @@ function read_barcode($post_data)
                         $lane_id = $row['id'];
                         $allocation = $row['height'];
                         //Get left allocation
-                        $query
-                            = "SELECT * FROM {$tblScanLog} WHERE `lane_id` = '{$lane_id}' AND `lane_id_fl` = '{$lane_index}' AND `booked_in` = 1 AND `booked_out` = 0";
-                        $result = $db->query($query);
-                        $allocation_done = mysqli_num_rows($result);
+                        $query = "SELECT * FROM {$tblScanLog} WHERE lane_id = '{$lane_id}' AND lane_id_fl = '{$lane_index}' AND booked_in = 1 AND booked_out = 0";
+                        $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+                        $allocation_done = sqlsrv_num_rows($result);
                         $stocking_action = $_SESSION['stocking_action'];
                         if ($stocking_action == 'in') {
                             if ($allocation_done < $allocation) {
-                                $query = "INSERT INTO {$tblScanLog}  (`part`, `lane_id`, `lane_id_fl`, `booked_in`, `booked_out`, `page`, `shift`, `shift_date`, `user_id`, `booked_in_time`)
-                                        value ('{$part_barcode}', '{$lane_id}', '{$lane_index}', 1, 0, '{$page}', '{$shift_id}', '{$shift_date}', {$user_id}, NOW())";
-                                $db->query($query);
+                                $query = "INSERT INTO {$tblScanLog}  (part, lane_id, lane_id_fl, booked_in, booked_out, page, shift, shift_date, user_id, booked_in_time)
+                                        values ('{$part_barcode}', '{$lane_id}', '{$lane_index}', 1, 0, '{$page}', '{$shift_id}', '{$shift_date}', {$user_id}, GETDATE())";
+                                sqlsrv_query($dbMssql, $query);
                             } else {
                                 $data['error']
                                     = 'Lane allocation already was 0.';
                             }
                         } else {
                             $query
-                                = "SELECT * FROM {$tblScanLog} WHERE `part` = '{$part_barcode}' AND `lane_id` = '{$lane_id}' AND `lane_id_fl` = '{$lane_index}' AND `booked_in` = 1 AND `booked_out` = 0";
-                            $result = $db->query($query);
-                            $chk = mysqli_num_rows($result);
+                                = "SELECT * FROM {$tblScanLog} WHERE part = '{$part_barcode}' AND lane_id = '{$lane_id}' AND lane_id_fl = '{$lane_index}' AND booked_in = 1 AND booked_out = 0";
+                            $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+                            $chk = sqlsrv_num_rows($result);
                             if ($chk > 0) {
-                                $scanned = mysqli_fetch_object($result);
-                                $update
-                                    = "UPDATE {$tblScanLog} SET `booked_out` = 1, `out_user_id` = {$user_id}, `booked_out_time` = NOW() WHERE id = {$scanned->id}";
-                                $db->query($update);
+                                $scanned = sqlsrv_fetch_object($result);
+                                $update = "UPDATE {$tblScanLog} SET booked_out = 1, out_user_id = {$user_id}, booked_out_time = GETDATE() WHERE id = {$scanned->id}";
+                                sqlsrv_query($dbMssql, $query);
                             } else {
                                 $data['error'] = 'There is no scanned in lane';
                             }
@@ -836,15 +847,16 @@ function read_barcode($post_data)
 
 function get_booked_in_out($page, $shift_id, $shift_date)
 {
-    global $db, $tblScanLog, $_SESSION;
+    global $dbMssql, $tblScanLog, $_SESSION;
     $query
-        = "SELECT * FROM {$tblScanLog} WHERE `page` = '{$page}' AND `shift` = '{$shift_id}' AND `shift_date` = '{$shift_date}' AND `booked_in` = 1";
-    $result = $db->query($query);
-    $data['booked_in'] = mysqli_num_rows($result);
+        = "SELECT * FROM {$tblScanLog} WHERE page = '{$page}' AND shift = '{$shift_id}' AND shift_date = '{$shift_date}' AND booked_in = 1";
+    $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+    $data['booked_in'] = sqlsrv_num_rows($result);
     $query
-        = "SELECT * FROM {$tblScanLog} WHERE `page` = '{$page}' AND `shift` = '{$shift_id}' AND `shift_date` = '{$shift_date}' AND `booked_out` = 1";
-    $result = $db->query($query);
-    $data['booked_out'] = mysqli_num_rows($result);
+        = "SELECT * FROM {$tblScanLog} WHERE page = '{$page}' AND shift = '{$shift_id}' AND shift_date = '{$shift_date}' AND booked_out = 1";
+    $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+    $data['booked_out'] = sqlsrv_num_rows($result);
+    
     return $data;
 }
 
@@ -1075,15 +1087,16 @@ function get_overview_screen()
 
 function read_history($post_data)
 {
-    global $db, $tblScanLog;
+    global $dbMssql, $tblScanLog;
     $from_date = convert_date_string($post_data['from_date']);
     $start = $from_date . " 00:00:00";
     $to_date = convert_date_string($post_data['to_date']);
     $end = $to_date . " 23:59:59";
 
     $query
-        = "SELECT * FROM {$tblScanLog} WHERE booked_in_time BETWEEN '{$start}' AND  '{$end}' ORDER BY `booked_in_time` ASC";
-    $result = $db->query($query);
+        = "SELECT * FROM {$tblScanLog} WHERE booked_in_time BETWEEN '{$start}' AND  '{$end}' ORDER BY booked_in_time ASC";
+
+    $result = sqlsrv_query($dbMssql, $query);
     echo '<table id="history_table" class="table table-bordered table-striped dataTable dtr-inline">';
     echo '<thead>';
     echo '<th>Location</th>';
@@ -1093,15 +1106,14 @@ function read_history($post_data)
     echo '<th>Member</th>';
     echo '</thead>';
     echo '<tbody>';
-    while ($row = mysqli_fetch_object($result)) {
+    while ($row = sqlsrv_fetch_object($result)) {
         $lane = get_lane_by_id($row->lane_id);
         $user = get_user_info($row->user_id);
         echo '<tr>';
         echo '<td>' . $lane->barcode_in . '</td>';
         echo '<td>Lane ' . $lane->lane_no . '</td>';
         echo '<td>' . $row->part . '</td>';
-        echo '<td><span style="display: none;">' . $row->booked_in_time . '</span>'
-            . date('d/m/Y H:i:s', strtotime($row->booked_in_time)) . '</td>';
+        echo '<td><span style="display: none;">' . $row->booked_in_time->format('d/m/Y H:i:s') . '</span>'. $row->booked_in_time->format('d/m/Y H:i:s') . '</td>';
         echo '<td>' . $user->username . '</td>';
         echo '</tr>';
     }
@@ -2008,7 +2020,7 @@ function update_revan_state($post_data)
 
 function read_area_lane_status($post_data, $direction = null)
 {
-    global $db, $tblScanLog, $STOCKING_AREAS, $tblParts;
+    global $dbMssql, $tblScanLog, $STOCKING_AREAS, $tblParts;
     $part_no = $post_data['part_no'];
     if (strlen($part_no) > 10) {
         $part_no = substr($part_no, 10, 2);
@@ -2020,17 +2032,17 @@ function read_area_lane_status($post_data, $direction = null)
         $direction = $post_data['direction'];
     }
     if (empty($part_no)) {
-        $query
-            = "SELECT * FROM {$tblScanLog} WHERE `page` = '{$page}' AND `booked_in` = 1 AND `booked_out` = 0";
+        $query = "SELECT * FROM {$tblScanLog} WHERE page = '{$page}' AND booked_in = 1 AND booked_out = 0";
     } else {
-        $query
-            = "SELECT * FROM {$tblScanLog} WHERE `page` = '{$page}' AND `booked_in` = 1 AND `booked_out` = 0 AND `part` = '{$part_no}'";
+        $query = "SELECT * FROM {$tblScanLog} WHERE page = '{$page}' AND booked_in = 1 AND booked_out = 0 AND part = '{$part_no}'";
     }
-    $result = $db->query($query);
-    $rows = mysqli_num_rows($result);
+
+    $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+
+    $rows = sqlsrv_num_rows($result);
     $filled_lanes = [];
     if ($rows > 0) {
-        while ($row = mysqli_fetch_object($result)) {
+        while ($row = sqlsrv_fetch_object($result)) {
             if (!in_array($row->lane_id, $filled_lanes)) {
                 array_push($filled_lanes, $row->lane_id);
             }
@@ -2039,14 +2051,22 @@ function read_area_lane_status($post_data, $direction = null)
         $part_no = '';
     }
     $query = "SELECT * FROM {$tblParts} WHERE part_no='" . $part_no . "'";
-    $this_part = mysqli_fetch_array($db->query($query));
+
+    $result = sqlsrv_query($dbMssql, $query);
+    $this_parts = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $this_parts[] = $row;
+    }
 
     $areas = [];
 
     $lanes = [];
     $areas_name = $STOCKING_AREAS;
-    // if(empty($this_part))
-    //     return;
+    
+    if(empty($this_parts))
+        return;
+
+    $this_part = $this_parts[0];
     {
         if (!intval($this_part['sf'])) {
             unset($areas_name[array_search('System Fill', $areas_name)]);
@@ -2063,10 +2083,9 @@ function read_area_lane_status($post_data, $direction = null)
         $lanes = get_all_lanes($area);
         foreach ($lanes as $lane) {
             $allocation = $lane->allocation;
-            $query
-                = "SELECT * FROM {$tblScanLog} WHERE `page` = '{$page}' AND `booked_in` = 1 AND `booked_out` = 0 AND `lane_id` = {$lane->id} ORDER BY booked_in_time";
-            $result = $db->query($query);
-            $filled_allocations = mysqli_num_rows($result);
+            $query = "SELECT * FROM {$tblScanLog} WHERE page = '{$page}' AND booked_in = 1 AND booked_out = 0 AND lane_id = {$lane->id} ORDER BY booked_in_time";
+            $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+            $filled_allocations = sqlsrv_num_rows($result);
             $left_allocations = $allocation - $filled_allocations;
             // var_dump($lane->area);
             if ($lane->area == "Free Location") {
@@ -2202,7 +2221,7 @@ function read_area_lane_status($post_data, $direction = null)
 
 function read_area_lane_status_overview($post_data, $direction = null)
 {
-    global $db, $tblScanLog, $STOCKING_AREAS, $tblParts;
+    global $dbMssql, $tblScanLog, $STOCKING_AREAS, $tblParts;
     $part_no = $post_data['part_no'];
     if (strlen($part_no) > 10) {
         $part_no = substr($part_no, 10, 2);
@@ -2215,16 +2234,16 @@ function read_area_lane_status_overview($post_data, $direction = null)
     }
     if (empty($part_no)) {
         $query
-            = "SELECT * FROM {$tblScanLog} WHERE `page` = '{$page}' AND `booked_in` = 1 AND `booked_out` = 0";
+            = "SELECT * FROM {$tblScanLog} WHERE page = '{$page}' AND booked_in = 1 AND booked_out = 0";
     } else {
         $query
-            = "SELECT * FROM {$tblScanLog} WHERE `page` = '{$page}' AND `booked_in` = 1 AND `booked_out` = 0 AND `part` = '{$part_no}'";
+            = "SELECT * FROM {$tblScanLog} WHERE page = '{$page}' AND booked_in = 1 AND booked_out = 0 AND part = '{$part_no}'";
     }
-    $result = $db->query($query);
-    $rows = mysqli_num_rows($result);
+    $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+    $rows = sqlsrv_num_rows($result);
     $filled_lanes = [];
     if ($rows > 0) {
-        while ($row = mysqli_fetch_object($result)) {
+        while ($row = sqlsrv_fetch_object($result)) {
             if (!in_array($row->lane_id, $filled_lanes)) {
                 array_push($filled_lanes, $row->lane_id);
             }
@@ -2233,7 +2252,15 @@ function read_area_lane_status_overview($post_data, $direction = null)
         $part_no = '';
     }
     $query = "SELECT * FROM {$tblParts} WHERE part_no='" . $part_no . "'";
-    $this_part = mysqli_fetch_array($db->query($query));
+    $result = sqlsrv_query($dbMssql, $query);
+
+    $this_parts = [];
+        while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+            $this_parts[] = $row;
+        }
+
+    if(count($this_parts) == 0) return;
+    $this_part = $this_parts[0];
 
     $areas = [];
 
@@ -2258,9 +2285,9 @@ function read_area_lane_status_overview($post_data, $direction = null)
         foreach ($lanes as $lane) {
             $allocation = $lane->allocation;
             $query
-                = "SELECT * FROM {$tblScanLog} WHERE `page` = '{$page}' AND `booked_in` = 1 AND `booked_out` = 0 AND `lane_id` = {$lane->id} ORDER BY booked_in_time";
-            $result = $db->query($query);
-            $filled_allocations = mysqli_num_rows($result);
+                = "SELECT * FROM {$tblScanLog} WHERE page = '{$page}' AND booked_in = 1 AND booked_out = 0 AND lane_id = {$lane->id} ORDER BY booked_in_time";
+                $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+            $filled_allocations = sqlsrv_num_rows($result);
             $left_allocations = $allocation - $filled_allocations;
             // var_dump($lane->area);
             if ($lane->area == "Free Location") {
@@ -2398,7 +2425,7 @@ function get_oldest_lanes_scanned(
     $area_code,
     $lean_name
 ) { // direction : in/out
-    global $db, $tblScanLog, $tblStocking;
+    global $dbMssql, $tblScanLog, $tblStocking;
     $part_no = $post_data["part_no"];
     $return_html = '';
 
@@ -2407,24 +2434,23 @@ function get_oldest_lanes_scanned(
     {
         if ($stock_available_lanes) {
             $sort_query
-                = "SELECT id, part, page, lane_id, lane_id_fl FROM {$tblScanLog} WHERE `lane_id` IN ("
+                = "SELECT TOP 1 id, part, page, lane_id, lane_id_fl FROM {$tblScanLog} WHERE lane_id IN ("
                 . implode(',', $stock_available_lanes) . ")"
-                . " AND booked_out_time IS NULL AND LCASE(part)='"
-                . strtolower($part_no) . "' ORDER BY booked_in_time LIMIT 1";
+                . " AND booked_out_time IS NULL AND LOWER(part)='"
+                . strtolower($part_no) . "' ORDER BY booked_in_time";
         } else {
             return $return_html;
         }
 
-        $sort_result = $db->query($sort_query);
-        if (mysqli_num_rows($sort_result) > 0) {
-            while ($row = mysqli_fetch_object($sort_result)) {
+        $sort_result = sqlsrv_query($dbMssql, $sort_query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+        if (sqlsrv_num_rows($sort_result) > 0) {
+            while ($row = sqlsrv_fetch_object($sort_result)) {
                 $part_no = $row->part;
 
                 if ($row->lane_id_fl) {
-                    $query
-                        = "SELECT * FROM {$tblStocking} WHERE id = {$row->lane_id}";
-
-                    $res = mysqli_fetch_object($db->query($query));
+                    $query = "SELECT * FROM {$tblStocking} WHERE id = {$row->lane_id}";
+                    $result = sqlsrv_query($dbMssql, $query);
+                    $res = sqlsrv_fetch_object($result);
 
                     $ind_no = -1;
                     foreach (str_split($res->barcode_in) as $ind => $cha) {
@@ -2437,8 +2463,9 @@ function get_oldest_lanes_scanned(
                     $new_pre_fix = $new_pre_fix_str . strval($row->lane_id_fl);
                     $lean_name = $new_pre_fix;
                 } else {
-                    $tem
-                        = mysqli_fetch_object($db->query("SELECT * FROM {$tblStocking} WHERE id={$row->lane_id}"));
+                    $query = "SELECT * FROM {$tblStocking} WHERE id={$row->lane_id}";
+                    $result = sqlsrv_query($dbMssql, $query);
+                    $tem = sqlsrv_fetch_object($result);
                     $lean_name = "Lane " . $tem->lane_no;
                     $area_code = $tem->area;
                 }
@@ -2463,20 +2490,20 @@ function get_oldest_lanes_scanned(
 
 function get_filled_lanes_by_part($post_data)
 {
-    global $db, $tblScanLog;
+    global $dbMssql, $tblScanLog;
     $part_no = $post_data['part_no'];
     if (strlen($part_no) > 10) {
         $part_no = substr($part_no, 10, 2);
     }
     $page = $post_data['page'];
     $query
-        = "SELECT * FROM {$tblScanLog} WHERE `page` = '{$page}' AND `booked_in` = 1 AND `booked_out` = 0 AND `part` = '{$part_no}'";
-    $result = $db->query($query);
-    $rows = mysqli_num_rows($result);
+        = "SELECT * FROM {$tblScanLog} WHERE page = '{$page}' AND booked_in = 1 AND booked_out = 0 AND part = '{$part_no}'";
+        $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+    $rows = sqlsrv_num_rows($result);
     $filled_lanes = [];
     //$lanes = array();
     if ($rows > 0) {
-        while ($row = mysqli_fetch_object($result)) {
+        while ($row = sqlsrv_fetch_object($result)) {
             if (!in_array($row->lane_id, $filled_lanes)) {
                 array_push($filled_lanes, $row->lane_id);
                 //array_push($lanes, get_lane_by_id($row->lane_id));
@@ -2490,12 +2517,12 @@ function get_filled_lanes_by_part($post_data)
     $lanes = [];
     foreach ($filled_lanes as $lane_id) {
         $query
-            = "SELECT * FROM {$tblScanLog} WHERE `page` = '{$page}' AND `booked_in` = 1 AND `booked_out` = 0 AND `lane_id` = {$lane_id}";
-        $result = $db->query($query);
+            = "SELECT * FROM {$tblScanLog} WHERE page = '{$page}' AND booked_in = 1 AND booked_out = 0 AND lane_id = {$lane_id}";
+            $result = sqlsrv_query($dbMssql, $query);
         $lane_inf = get_lane_by_id($lane_id);
         $location_index = $lane_inf->allocation;
         $locations = [];
-        while ($row = mysqli_fetch_object($result)) {
+        while ($row = sqlsrv_fetch_object($result)) {
             if ($lane_inf->area == 'Free Location') {
                 array_push($locations, $row->lane_id_fl);
                 $amount += $part['amount'];
@@ -2525,22 +2552,25 @@ function get_filled_lanes_by_part($post_data)
 
 function load_overview_screen($post_data)
 {
-    global $db, $tblScanLog, $STOCKING_AREAS;
+    global $dbMssql, $tblScanLog, $STOCKING_AREAS;
     $page = $post_data['page'];
     $td_data = [];
     foreach ($STOCKING_AREAS as $index => $area) {
         $lanes = get_all_lanes($area);
         foreach ($lanes as $lane) {
             $query
-                = "SELECT * FROM {$tblScanLog} WHERE `page` = '{$page}' AND `booked_in` = 1 AND `booked_out` = 0 AND `lane_id` = {$lane->id}";
+                = "SELECT * FROM {$tblScanLog} WHERE page = '{$page}' AND booked_in = 1 AND booked_out = 0 AND lane_id = {$lane->id}";
 
-            $result = $db->query($query);
-            $filled_allocations = mysqli_num_rows($result);
+                $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+            $filled_allocations = sqlsrv_num_rows($result);
 
             $allocations = $lane->allocation;
             $height = $lane->height;
             if ($area == 'Free Location') {
-                $arr = mysqli_fetch_all($result, MYSQLI_ASSOC);
+                $arr = [];
+                while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+                    $arr[] = $row;
+                }
 
                 $lane_id_fls = array_column($arr, "lane_id_fl");
                 $temp = array_count_values($lane_id_fls);
@@ -3013,7 +3043,7 @@ function load_overview_screen($post_data)
 
 function get_box_data($post_data)
 {
-    global $db, $tblScanLog;
+    global $dbMssql, $tblScanLog;
     $lane_id = $post_data['lane_id'];
     $page = $post_data['page'];
     $box_index = $post_data['box_index'];
@@ -3068,16 +3098,16 @@ function get_box_data($post_data)
     if ($area == 'Free Location') {
         $lane_id_fl = $lane->allocation - $box_index;
         $query
-            = "SELECT * FROM {$tblScanLog} WHERE `page` = '{$page}' AND `booked_in` = 1 AND `booked_out` = 0 AND `lane_id` = {$lane->id} AND `lane_id_fl` = {$lane_id_fl} ORDER BY `booked_in_time` ASC";
+            = "SELECT * FROM {$tblScanLog} WHERE page = '{$page}' AND booked_in = 1 AND booked_out = 0 AND lane_id = {$lane->id} AND lane_id_fl = {$lane_id_fl} ORDER BY booked_in_time ASC";
     } else {
-        $query = "SELECT * FROM {$tblScanLog} WHERE `page` = '{$page}' AND `booked_in` = 1 AND `booked_out` = 0 AND `lane_id` = {$lane->id}
-                ORDER BY `booked_in_time` ASC LIMIT {$start}, {$end}";
+        $query = "SELECT * FROM {$tblScanLog} WHERE page = '{$page}' AND booked_in = 1 AND booked_out = 0 AND lane_id = {$lane->id}
+                ORDER BY booked_in_time OFFSET {$start} ROWS FETCH NEXT {$end} ROWS ONLY";
     }
 
-    $result = $db->query($query);
-    if (mysqli_num_rows($result)) {
+    $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+    if (sqlsrv_num_rows($result)) {
         $data = [];
-        while ($row = mysqli_fetch_object($result)) {
+        while ($row = sqlsrv_fetch_object($result)) {
             if (!empty($row->user_id)) {
                 $user = get_user_info($row->user_id);
                 if (isset($user->username)) {
@@ -3099,7 +3129,7 @@ function get_box_data($post_data)
             array_push(
                 $data,
                 [
-                    'date' => date('d/m/Y', strtotime($row->booked_in_time)),
+                    'date' => $row->booked_in_time->format('d/m/Y'),
                     'member' => $user_name,
                     'part_no' => $row->part,
                     'amount' => $amount,
@@ -3108,11 +3138,11 @@ function get_box_data($post_data)
         }
     } else {
         $left = $allocations - $box_index;
-        $query = "SELECT * FROM {$tblScanLog} WHERE `page` = '{$page}' AND `booked_in` = 1 AND `booked_out` = 0 AND `lane_id` = {$lane->id} AND `lane_id_fl` = {$left}
-        ORDER BY `booked_in_time` ASC LIMIT 1";
-        $result = $db->query($query);
+        $query = "SELECT TOP 1 * FROM {$tblScanLog} WHERE page = '{$page}' AND booked_in = 1 AND booked_out = 0 AND lane_id = {$lane->id} AND lane_id_fl = {$left}
+        ORDER BY booked_in_time";
+        $result = sqlsrv_query($dbMssql, $query);
         $data = [];
-        while ($row = mysqli_fetch_object($result)) {
+        while ($row = sqlsrv_fetch_object($result)) {
             if (!empty($row->user_id)) {
                 $user = get_user_info($row->user_id);
                 $user_name = $user->username;
@@ -3209,23 +3239,21 @@ function get_box_data($post_data)
 
 function go_to_overstock($post_data)
 {
-    global $db, $tblOverstock;
+    global $dbMssql, $tblOverstock;
     $part = $post_data['part'];
     $page = $post_data['page'];
     $stock_action = $_SESSION['stocking_action'];
     if ($stock_action == 'in') {
-        $query
-            = "INSERT INTO {$tblOverstock}  (`part`, `page`, `created_at`) value ('{$part}', '{$page}', NOW())";
-        $db->query($query);
+        $query = "INSERT INTO {$tblOverstock}  (part, page, created_at) values ('{$part}', '{$page}', GETDATE())";
+        sqlsrv_query($dbMssql, $query);
     } else {
-        $query
-            = "SELECT * FROM {$tblOverstock} WHERE part='{$part}' AND page ='{$page}' LIMIT 1";
-        $result = $db->query($query);
-        $row = mysqli_fetch_object($result);
+        $query = "SELECT TOP 1 * FROM {$tblOverstock} WHERE part='{$part}' AND page ='{$page}'";
+        $result = sqlsrv_query($dbMssql, $query);
+        $row = sqlsrv_fetch_object($result);
         if ($row) {
             $id = $row->id;
             $query = "DELETE FROM {$tblOverstock} WHERE id = {$id}";
-            $db->query($query);
+            sqlsrv_query($dbMssql, $query);
         }
     }
     echo 'Success';
@@ -3233,18 +3261,19 @@ function go_to_overstock($post_data)
 
 function overstock_view()
 {
-    global $db, $tblOverstock;
+    global $dbMssql, $tblOverstock;
     $query
-        = "SELECT part, COUNT(part) as 'quantity' FROM {$tblOverstock} GROUP BY part";
-    $result = $db->query($query);
+        = "SELECT part, COUNT(part) as quantity FROM {$tblOverstock} GROUP BY part";
+
+    $result = sqlsrv_query($dbMssql, $query);
     echo '<table class="table table-bordered">';
     echo '<thead>';
     echo '<tr><th>Part</th><th>Quantity</th></tr>';
     echo '</thead>';
-    while ($row = mysqli_fetch_assoc($result)) {
+    while ($row = sqlsrv_fetch_object($result)) {
         echo '<tr>';
-        echo '<td>' . $row['part'] . '</td>';
-        echo '<td>X' . $row['quantity'] . '</td>';
+        echo '<td>' . $row->part . '</td>';
+        echo '<td>X' . $row->quantity . '</td>';
         echo '</tr>';
     }
     echo "</table>";
@@ -3254,13 +3283,13 @@ function overstock_view()
 function get_barcodein_from_laneno()
 {
     $lane_no = $_POST["lane_id"];
-    global $db, $tblStocking;
+    global $dbMssql, $tblStocking;
     $query
-        = "SELECT barcode_in as 'barcode' FROM {$tblStocking} where `lane_no` ='"
+        = "SELECT barcode_in as barcode FROM {$tblStocking} where lane_no ='"
         . $lane_no . "'";
-    $result = $db->query($query);
+    $result = sqlsrv_query($dbMssql, $query);
 
-    $row = mysqli_fetch_object($result);
+    $row = sqlsrv_fetch_object($result);
     if ($row) {
         echo $row->barcode;
     } else {
@@ -4320,7 +4349,7 @@ function save_dolly($post_data)
     $color = $post_data['color'];
     if ($dolly_id == 0) {
         $query = "INSERT INTO {$tblDolly}  (`name`, `color`)
-                    value ('{$dolly_name}', '{$color}')";
+                    values ('{$dolly_name}', '{$color}')";
         $result = $db->query($query);
         $insert_id = $db->insert_id;
         echo '<tr id="tr_dolly_' . $insert_id . '">';
@@ -4412,7 +4441,7 @@ function save_reason($post_data)
     $reason_name = $post_data['reason_name'];
     if ($reason_id == 0) {
         $query = "INSERT INTO {$tblReason}  (`name`)
-                    value ('{$reason_name}')";
+                    values ('{$reason_name}')";
         $result = $db->query($query);
         $insert_id = $db->insert_id;
         echo '<tr id="tr_reason_' . $insert_id . '">';
@@ -4493,7 +4522,7 @@ function save_part2kanban($post_data)
     $max = $post_data['max'];
     if ($item_id == 0) {
         $query = "INSERT INTO {$tblPart2Kanban}  (`kanban`, `part_number`, `dolly`, `barcode`, `pick_address`, `delivery_address`, `delivery_address2`, `pick_seq`,`min`,`max`)
-                    value ('{$kanban}', '{$part_number}', '{$dolly}', '{$barcode}', '{$pick_address}', '{$delivery_address}', '{$delivery_address2}', '{$pick_seq}', '{$min}', '{$max}')";
+                    values ('{$kanban}', '{$part_number}', '{$dolly}', '{$barcode}', '{$pick_address}', '{$delivery_address}', '{$delivery_address2}', '{$pick_seq}', '{$min}', '{$max}')";
         $db->query($query);
         $insert_id = $db->insert_id;
         echo '<tr id="tr_p2k_' . $insert_id . '">';
