@@ -732,7 +732,10 @@ require_once("assets.php");
                     var kanban_no = $("#current_kanban").text();
                     var location = $("#current_address").text();
                     var part_num = $("#current_kanban_part_num").val();
-                    if (value == "") return false;
+                    if (value == "") {
+                        playAudio('assets/audio/Incorrect_kanban_entered_please_try_again.wav');
+                        return false;
+                    }
                     if (input_type == 'kanban') {
                         if (value == kanban_no || value == part_num) {
                             $("#input_type").val('location');

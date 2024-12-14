@@ -4775,22 +4775,25 @@ function close_session($post_data)
 
 function get_all_session_json($post_data)
 {
-    global $db, $tblConveyancePicks, $tblUsers, $tblHelpAlarm;
+    global $dbMssql, $tblConveyancePicks, $tblUsers, $tblHelpAlarm;
     $today = $post_data['today'];
     $yesterday = $post_data['yesterday'];
     $query
         = "SELECT count(distinct cycle) as remaining_cycles FROM {$tblConveyancePicks} WHERE kanban_date >= '{$yesterday}' AND kanban_date <= '{$today}' AND is_help=1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['remaining_cycles'] = $res['remaining_cycles'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['remaining_cycles'] = $res->remaining_cycles;
 
     // $query = "SELECT kanban, cycle, (SELECT max(cycle) from {$tblConveyancePicks}  WHERE is_help = 1 AND is_completed = 0  AND kanban_date = '{$today}') AS max_cycle from {$tblConveyancePicks} WHERE is_help = 1 AND is_completed = 0 AND kanban_date = '{$today}'";
     $query
         = "SELECT cp.id, cp.is_completed, cp.kanban AS kanban, cp.cycle AS cycle, cp.helped_at AS helped_at, u.username AS username FROM {$tblConveyancePicks} AS cp INNER JOIN {$tblUsers} AS u ON cp.helped_user = u.ID AND cp.kanban_date >= '{$yesterday}' AND cp.kanban_date <= '{$today}' AND cp.is_help = 1";
 
     // $query = "SELECT cp.id, cp.is_completed, cp.kanban AS kanban, cp.cycle AS cycle, cp.helped_at AS helped_at, u.username AS username FROM {$tblConveyancePicks} AS cp INNER JOIN {$tblUsers} AS u ON cp.helped_user = u.ID AND cp.kanban_date >= '{$yesterday}' AND cp.kanban_date <= '{$today}' AND cp.is_help = 1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_all($result, MYSQLI_ASSOC);
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $res[] = $row;
+    }
     // $res =  mysqli_fetch_array($result);
     $data['id'] = array_column($res, "id");
     $data['is_completed'] = array_column($res, "is_completed");
@@ -4801,53 +4804,53 @@ function get_all_session_json($post_data)
 
 
     $query
-        = "SELECT MAX(cycle) as max_cycle FROM {$tblConveyancePicks} WHERE kanban_date = DATE('{$today}') AND is_help=1";
+        = "SELECT MAX(cycle) as max_cycle FROM {$tblConveyancePicks} WHERE kanban_date = '{$today}' AND is_help=1";
 
     // $query = "SELECT MAX(cycle) as max_cycle FROM {$tblConveyancePicks} WHERE kanban_date >= '{$yesterday}' AND kanban_date <= '{$today}' AND is_help=1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['max_cycle'] = $res['max_cycle'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['max_cycle'] = $res->max_cycle;
 
     $query
-        = "SELECT COUNT(*) as incomplete_pick_count FROM {$tblConveyancePicks} WHERE kanban_date = DATE('{$today}') AND is_help=1 AND is_completed = 0 AND is_pick=1";
+        = "SELECT COUNT(*) as incomplete_pick_count FROM {$tblConveyancePicks} WHERE kanban_date = '{$today}' AND is_help=1 AND is_completed = 0 AND is_pick=1";
     // $query = "SELECT COUNT(*) as incomplete_pick_count FROM {$tblConveyancePicks} WHERE kanban_date >= '{$yesterday}' AND kanban_date <= '{$today}' AND is_help=1 AND is_completed = 0 AND is_pick=1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['incomplete_pick_count'] = $res['incomplete_pick_count'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['incomplete_pick_count'] = $res->incomplete_pick_count;
 
     $query
-        = "SELECT COUNT(*) as incomplete_delivery_count FROM {$tblConveyancePicks} WHERE kanban_date = DATE('{$today}')  AND is_help=1 AND is_delivered = 0 AND is_pick=0";
+        = "SELECT COUNT(*) as incomplete_delivery_count FROM {$tblConveyancePicks} WHERE kanban_date = '{$today}'  AND is_help=1 AND is_delivered = 0 AND is_pick=0";
     // $query = "SELECT COUNT(*) as incomplete_delivery_count FROM {$tblConveyancePicks} WHERE kanban_date >= '{$yesterday}' AND kanban_date <= '{$today}'  AND is_help=1 AND is_delivered = 0 AND is_pick=0";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['incomplete_delivery_count'] = $res['incomplete_delivery_count'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['incomplete_delivery_count'] = $res->incomplete_delivery_count;
 
     $query
-        = "SELECT COUNT(*) as incomplete_stocking_count FROM {$tblHelpAlarm} WHERE DATE(clicked_time) = DATE('{$today}')  AND is_confirm=0 AND page ='Stocking'";
+        = "SELECT COUNT(*) as incomplete_stocking_count FROM {$tblHelpAlarm} WHERE clicked_time = '{$today}' AND is_confirm=0 AND page ='Stocking'";
     // $query = "SELECT COUNT(*) as incomplete_stocking_count FROM {$tblHelpAlarm} WHERE clicked_time >= '{$yesterday}' AND clicked_time <= '{$today}'  AND is_confirm=0 AND page ='Stocking'";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['incomplete_stocking_count'] = $res['incomplete_stocking_count'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['incomplete_stocking_count'] = $res->incomplete_stocking_count;
 
     $query
-        = "SELECT COUNT(*) as incomplete_devan_count FROM {$tblHelpAlarm} WHERE DATE(clicked_time) = DATE('{$today}')  AND is_confirm=0 AND page ='Container Devan'";
+        = "SELECT COUNT(*) as incomplete_devan_count FROM {$tblHelpAlarm} WHERE clicked_time = '{$today}' AND is_confirm=0 AND page ='Container Devan'";
     // $query = "SELECT COUNT(*) as incomplete_devan_count FROM {$tblHelpAlarm} WHERE clicked_time >= '{$yesterday}' AND clicked_time <= '{$today}'  AND is_confirm=0 AND page ='Container Devan'";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['incomplete_devan_count'] = $res['incomplete_devan_count'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['incomplete_devan_count'] = $res->incomplete_devan_count;
 
     $query
-        = "SELECT COUNT(*) as incomplete_driver_count FROM {$tblHelpAlarm} WHERE DATE(clicked_time = '{$today}')  AND is_confirm=0 AND page ='Driver'";
+        = "SELECT COUNT(*) as incomplete_driver_count FROM {$tblHelpAlarm} WHERE clicked_time = '{$today}'  AND is_confirm=0 AND page ='Driver'";
     // $query = "SELECT COUNT(*) as incomplete_driver_count FROM {$tblHelpAlarm} WHERE clicked_time >= '{$yesterday}' AND clicked_time <= '{$today}'  AND is_confirm=0 AND page ='Driver'";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['incomplete_driver_count'] = $res['incomplete_driver_count'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['incomplete_driver_count'] = $res->incomplete_driver_count;
 
     $query
         = "SELECT COUNT(*) as complete_count FROM {$tblConveyancePicks} WHERE kanban_date >= '{$yesterday}' AND kanban_date <= '{$today}'  AND is_completed = 1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['complete_count'] = $res['complete_count'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['complete_count'] = $res->complete_count;
     $data['users'] = get_all_sessions();
     echo json_encode($data, true);
 }
@@ -4918,14 +4921,14 @@ function save_tag($post_data)
 
 function save_cycle_setting($post_data)
 {
-    global $db, $tblCycleSetting;
+    global $dbMssql, $tblCycleSetting;
     $cycle_value = $post_data['cycle_value'];
 
     $query = "TRUNCATE TABLE {$tblCycleSetting}";
-    $db->query($query);
-    $query = "INSERT INTO {$tblCycleSetting}  (`value`) VALUE ({$cycle_value})";
+    sqlsrv_query($dbMssql, $query);
+    $query = "INSERT INTO {$tblCycleSetting}  ([value]) VALUES ({$cycle_value})";
 
-    $result = $db->query($query);
+    $result = sqlsrv_query($dbMssql, $query);
     if ($result) {
         echo 'Ok';
     } else {
@@ -4955,14 +4958,14 @@ function save_opr_pick_delivery_setting($post_data)
 
 function save_driver_setting($post_data)
 {
-    global $db, $tblDriverSetting;
+    global $dbMssql, $tblDriverSetting;
     $val = $post_data['val'];
 
     $query = "TRUNCATE TABLE {$tblDriverSetting}";
-    $db->query($query);
-    $query = "INSERT INTO {$tblDriverSetting}  (`value`) VALUES ({$val})";
+    sqlsrv_query($dbMssql, $query);
+    $query = "INSERT INTO {$tblDriverSetting}  ([value]) VALUES ({$val})";
 
-    $result = $db->query($query);
+    $result = sqlsrv_query($dbMssql, $query);
     if ($result) {
         echo 'Ok';
     } else {
@@ -4997,20 +5000,23 @@ function get_andons_info_teamleader($post_data)
 
 function get_remaining_incomplete_pick($post_data)
 {
-    global $db, $tblConveyancePicks, $tblUsers;
+    global $dbMssql, $tblConveyancePicks, $tblUsers;
     $today = $post_data['today'];
     $yesterday = $post_data['yesterday'];
     $query
         = "SELECT count(distinct cycle) as remaining_cycles FROM {$tblConveyancePicks} WHERE kanban_date >= '{$yesterday}' AND kanban_date <= '{$today}' AND is_completed =0";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['remaining_cycles'] = $res['remaining_cycles'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['remaining_cycles'] = $res->remaining_cycles;
 
     // $query = "SELECT kanban, cycle, (SELECT max(cycle) from {$tblConveyancePicks}  WHERE is_help = 1 AND is_completed = 0  AND kanban_date = '{$today}') AS max_cycle from {$tblConveyancePicks} WHERE is_help = 1 AND is_completed = 0 AND kanban_date = '{$today}'";
     $query
         = "SELECT cp.kanban AS kanban, cp.cycle AS cycle, cp.helped_at AS helped_at, u.username AS username FROM {$tblConveyancePicks} AS cp INNER JOIN {$tblUsers} AS u ON cp.helped_user = u.ID AND cp.kanban_date >= '{$yesterday}' AND cp.kanban_date <= '{$today}' AND cp.is_help = 1 AND cp.is_completed =0";
-    $result = $db->query($query);
-    $res = mysqli_fetch_all($result, MYSQLI_ASSOC);
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $res[] = $row;
+    }
     // $res =  mysqli_fetch_array($result);
     $data['incomplete_kanban'] = array_column($res, "kanban");
     $data['incomplete_cycle'] = array_column($res, "cycle");
@@ -5019,9 +5025,9 @@ function get_remaining_incomplete_pick($post_data)
 
     $query
         = "SELECT MAX(cycle) as max_cycle FROM {$tblConveyancePicks} WHERE kanban_date >= '{$yesterday}' AND kanban_date <= '{$today}'";
-    $result = $db->query($query);
-    $res = mysqli_fetch_row($result);
-    $data['max_cycle'] = $res['max_cycle'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['max_cycle'] = $res->max_cycle;
 
     echo json_encode($data, true);
 }
@@ -5151,50 +5157,50 @@ function get_sequence_control_addon($post_data)
 
 function get_remaining_build_delivery($post_data)
 {
-    global $db, $tblTag, $tblLive, $tblCycleSetting, $tblConveyancePicks, $tblDriverSetting;
+    global $dbMssql, $tblTag, $tblLive, $tblCycleSetting, $tblConveyancePicks, $tblDriverSetting;
     $today = $post_data['today'];
     $yesterday = $post_data['yesterday'];
 
     $query
         = "SELECT count(distinct cycle) as remaining_cycles FROM {$tblConveyancePicks} WHERE kanban_date >= '{$yesterday}' AND kanban_date <= '{$today}' AND is_delivered =0";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['remaining_cycles'] = $res['remaining_cycles'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['remaining_cycles'] = $res->remaining_cycles;
 
     $query
         = "SELECT count(distinct cycle) as remaining_cycles_pick FROM {$tblConveyancePicks} WHERE kanban_date >= '{$yesterday}' AND kanban_date <= '{$today}' AND is_completed =0";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['remaining_cycles_pick'] = $res['remaining_cycles_pick'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['remaining_cycles_pick'] = $res->remaining_cycles_pick;
 
     $query
         = "SELECT count(distinct cycle) as remaining_cycles_delivery FROM {$tblConveyancePicks} WHERE kanban_date >= '{$yesterday}' AND kanban_date <= '{$today}' AND is_delivered =0";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['remaining_cycles_delivery'] = $res['remaining_cycles_delivery'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['remaining_cycles_delivery'] = $res->remaining_cycles_delivery;
 
     $query = "SELECT value FROM {$tblTag}";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $tag = $res['value'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $tag = $res->value;
 
     $query = "SELECT value FROM {$tblCycleSetting}";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $cycle = $res['value'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $cycle = $res->value;
     $data['cycle'] = (int) $cycle;
 
     $query = "SELECT value FROM {$tblDriverSetting}";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $cycle = $res['value'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $cycle = $res->value;
     $data['driver'] = (int) $cycle;
 
     $query
-        = "SELECT value FROM {$tblLive} WHERE `name` = '{$tag}' ORDER BY id DESC LIMIT 1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['count'] = (int) $res['value'];
+        = "SELECT TOP 1 value FROM {$tblLive} WHERE name = '{$tag}' ORDER BY id DESC";
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['count'] = (int) $res->value;
 
     if (isset($_SESSION['driver_current_zone'])) {
         $data['driver_current_zone'] = $_SESSION['driver_current_zone'];
