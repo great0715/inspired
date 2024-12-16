@@ -46,6 +46,8 @@ if (0 < $_FILES['file']['error']) {
                     $address = get_pick_address_by_kanban_and_delivery($kanban, $delivery_address);
                     $dolly = get_dolly_by_kanban_and_delivery($kanban, $delivery_address);
                     $pick_seq = get_pick_seq_by_kanban_and_delivery($kanban, $delivery_address);
+                    if($address == "" || $dolly == "" || $pick_seq == "")
+                        continue;
                     $cycle = $row[1];
                     $kanban_date = date("Y-m-d", DateTime::createFromFormat("Y-m-d", $row[0])->getTimestamp());
                     $query = "INSERT INTO {$tblConveyancePicks} (kanban, cycle, [address], [location], dolly, kanban_date, imported_at, dolly_location, part_number, delivery_address, completed_reason, delivered_reason, helped_at, pick_seq, is_pick)

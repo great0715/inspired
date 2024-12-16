@@ -75,12 +75,12 @@ function get_build_amount()
 
 function get_cycle_setting()
 {
-    global $db, $tblCycleSetting;
+    global $dbMssql, $tblCycleSetting;
 
     $query = "SELECT value FROM {$tblCycleSetting}";
-    $result = $db->query($query);
-    if ($result && mysqli_num_rows($result) > 0) {
-        $cycle = mysqli_fetch_object($result);
+    $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+    if ($result && sqlsrv_num_rows($result) > 0) {
+        $cycle = sqlsrv_fetch_object($result);
         return $cycle->value;
     } else {
         return '';
@@ -862,13 +862,13 @@ function get_booked_in_out($page, $shift_id, $shift_date)
 
 function get_filled_lane($lane_id)
 {
-    global $db, $tblScanLog;
+    global $dbMssql, $tblScanLog;
     $query
-        = "SELECT * FROM {$tblScanLog} WHERE `lane_id` = {$lane_id} AND `booked_in` = 1 AND `booked_out` = 0";
-    $result = $db->query($query);
+        = "SELECT * FROM {$tblScanLog} WHERE lane_id = {$lane_id} AND booked_in = 1 AND booked_out = 0";
+    $result = sqlsrv_query($dbMssql, $query);
     $filled = [];
-    while ($row = mysqli_fetch_object($result)) {
-        $date_in = date('d/m/Y H:i:s', strtotime($row->booked_in_time));
+    while ($row = sqlsrv_fetch_object($result)) {
+        $date_in = $row->booked_in_time->format('d/m/Y H:i:s');
         $user = get_user_info($row->user_id);
         array_push(
             $filled,
@@ -889,16 +889,16 @@ function read_scan_table($post_data)
     $shift_date = $post_data['shift_date'];
     $page = $post_data['page'];
     $query
-        = "SELECT * FROM {$tblScanLog} WHERE `page` = '{$page}' AND `shift` = '{$shift_id}' AND `shift_date` = '{$shift_date}' ORDER BY `booked_in_time` ASC";
-    $result = $db->query($query);
-    while ($row = mysqli_fetch_object($result)) {
+        = "SELECT * FROM {$tblScanLog} WHERE page = '{$page}' AND shift = '{$shift_id}' AND shift_date = '{$shift_date}' ORDER BY booked_in_time ASC";
+    $result = sqlsrv_query($dbMssql, $query);
+    while ($row = sqlsrv_fetch_object($result)) {
         echo '<tr>';
         echo '<td>' . $row->part . '</td>';
         $lane = get_lane_by_id($row->lane_id);
         echo '<td>' . $lane->area . '</td>';
         echo '<td>Lane ' . $lane->lane_no . '</td>';
         echo '<td style="color: green;">IN</td>';
-        echo '<td>' . date('d/m/Y H:i:s', strtotime($row->booked_in_time))
+        echo '<td>' . $row->booked_in_time->format('d/m/Y H:i:s')
             . '</td>';
         $user = get_user_info($row->user_id);
         echo '<td>' . $user->username . '</td>';
@@ -910,7 +910,7 @@ function read_scan_table($post_data)
             echo '<td>' . $lane->area . '</td>';
             echo '<td>Lane ' . $lane->lane_no . '</td>';
             echo '<td style="color: red;">OUT</td>';
-            echo '<td>' . date('d/m/Y H:i:s', strtotime($row->booked_out_time))
+            echo '<td>' . $row->booked_out_time->format('d/m/Y H:i:s')
                 . '</td>';
             $user = get_user_info($row->out_user_id);
             echo '<td>' . $user->username . '</td>';
@@ -959,14 +959,14 @@ function get_help_alarm($post_data)
     global $db, $tblHelpAlarm;
     $page = $post_data['page'];
     // $query = "SELECT * FROM {$tblHelpAlarm} WHERE `is_confirm` = 0 AND page ='{$page}' LIMIT 1";
-    $query = "SELECT * FROM {$tblHelpAlarm} WHERE `is_confirm` = 0 LIMIT 1";
-    $result = $db->query($query);
-    if (mysqli_num_rows($result) > 0) {
-        $row = mysqli_fetch_object($result);
+    $query = "SELECT TOP 1 * FROM {$tblHelpAlarm} WHERE is_confirm = 0";
+    $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+    if (sqlsrv_num_rows($result) > 0) {
+        $row = sqlsrv_fetch_object($result);
         $user = get_user_info($row->user_id);
         echo '<h3>ANDON HELP</h3>';
         echo '<h3>MEMBER: ' . $user->username . '</h3>';
-        echo '<h3>TIME: ' . date('d/m/Y H:i:s', strtotime($row->clicked_time))
+        echo '<h3>TIME: ' . $row->clicked_time->format('d/m/Y H:i:s')
             . '</h3>';
         echo '<input type="hidden" id="confirm_help_alarm_id" value="' . $row->id
             . '">';
@@ -977,11 +977,11 @@ function get_help_alarm($post_data)
 
 function get_help_alarm_for_overview($page)
 {
-    global $db, $tblHelpAlarm;
+    global $dbMssql, $tblHelpAlarm;
     $query
-        = "SELECT * FROM {$tblHelpAlarm} WHERE `is_confirm` = 0 AND `page` = '{$page}' LIMIT 1";
-    $result = $db->query($query);
-    if (mysqli_num_rows($result) > 0) {
+        = "SELECT TOP 1 * FROM {$tblHelpAlarm} WHERE is_confirm = 0 AND page = '{$page}'";
+    $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+    if (sqlsrv_num_rows($result) > 0) {
         return true;
     } else {
         return false;
@@ -1721,24 +1721,27 @@ function get_live_deban($post_data)
 
 function get_live_deban_overview1($post_data)
 {
-    global $db, $tblContainerDevan, $today;
+    global $dbMssql, $tblContainerDevan, $today;
 
     $user = ''; //$post_data['user'];
     if ($post_data['date'] == 'today') {
         //$query = "SELECT * FROM {$tblContainerDevan} WHERE `revan_state` = 'scheduled' ORDER BY `date` ASC LIMIT 1";
         $query
-            = "SELECT * FROM {$tblContainerDevan} WHERE `date` >= '{$today}' AND `is_completed` = 0 AND `inbound_renban_air_freight_case_number`!='' ORDER BY `date` ASC LIMIT 1";
+            = "SELECT TOP 1 * FROM {$tblContainerDevan} WHERE [date] >= '{$today}' AND is_completed = 0 AND inbound_renban_air_freight_case_number!='' ORDER BY [date] ASC";
     } else {
         $date = convert_date_string($post_data['date']);
         $query
-            = "SELECT * FROM {$tblContainerDevan} WHERE `date` >= '{$date}' AND `is_completed` = 0  AND `inbound_renban_air_freight_case_number`!='' ORDER BY `date` ASC LIMIT 1";
+            = "SELECT TOP 1 * FROM {$tblContainerDevan} WHERE [date] >= '{$date}' AND is_completed = 0  AND inbound_renban_air_freight_case_number!='' ORDER BY [date] ASC";
     }
 
-    $result = $db->query($query);
-    if (mysqli_num_rows($result) > 0) {
-        $devan = mysqli_fetch_array($result);
-        //var_dump($devan);exit();
-        //Update Renban No
+    $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+    if (sqlsrv_num_rows($result) > 0) {
+        $ress = [];
+        while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+            $ress[] = $row;
+        }
+        if(count($ress) == 0) return;
+        $devan = $ress[0];
         $renban_no = get_setting('renban_no_prefix');
         //$renban_no = update_renban_no($devan['id']);
 
@@ -1780,7 +1783,7 @@ function get_live_deban_overview1($post_data)
 
         echo '<h1 style="font-size: 22px;"><p style="color: gray; text-transform: uppercase; font-weight:bold; margin-bottom:auto">Current Devan: </p>'
             . '<span style="margin-right: 20px; text-transform: uppercase;font-weight:bold">'
-            . date('d/m/Y', strtotime($devan['date']))
+            . $devan['date']->format('d/m/Y')
             . '</span><span style="margin-right: 20px; text-transform: uppercase;font-weight:bold">'
             . $shift . '</span><span style="font-weight:bold">' . $devan['time']
             . '</span></h1>';
@@ -3323,14 +3326,9 @@ function read_kanban_box($post_data)
         $result1 = sqlsrv_query($dbMssql, $query1);
         $r1 = sqlsrv_fetch_object($result1);
         $max_cycle = $r1->max_cycle;
-        
-        $data['query1'] = $query1;
-    }
-
-    if ($post_data['cycle'] == -1) // $cur = $max_cycle;
-    {
         $cur = 1;
-    } else {
+        $data['query1'] = $query1;
+    }else{
         $cur = $post_data['cycle'];
     }
     //Get total unpicked kanban
@@ -3708,6 +3706,7 @@ function read_pick_list($post_data)
     $res[$num_rows - 1] = $tmp_kanban;
     // $tmp_kanban = $res[0]['kanban'];
     }*/
+  
     foreach ($res as $pick) {
         // $dolly = get_dolly_by_name($pick['kanban']);
         // $dolly = get_dolly_by_name_delivery($pick['kanban'], $pick['delivery_address']);
@@ -3931,7 +3930,7 @@ function check_pick_finish($post_data)
                 = "SELECT * FROM {$tblConveyancePicks} WHERE is_completed = 0 AND kanban_date = '{$pick_date}'";
         } else // var_dump()
         {
-            if ($post_data['zone'] == -1) {
+            if ($post_data['zone'] == 0) {
                 $query
                     = "SELECT * FROM {$tblConveyancePicks} WHERE cycle={$post_data['cycle']} AND is_completed = 0 AND kanban_date = '{$pick_date}'";
             } else {
@@ -3968,8 +3967,20 @@ function check_pick_finish($post_data)
             }
         }
     } else {
-        $query
-            = "SELECT * FROM {$tblConveyancePicks} WHERE cycle={$post_data['cycle']} AND is_delivered = 0 AND kanban_date='{$pick_date}'";
+        if ($post_data['cycle'] == -1) {
+            $query
+                = "SELECT * FROM {$tblConveyancePicks} WHERE is_delivered = 0 AND kanban_date = '{$pick_date}'";
+        } else // var_dump()
+        {
+            if ($post_data['zone'] == 0) {
+                $query
+                    = "SELECT * FROM {$tblConveyancePicks} WHERE cycle={$post_data['cycle']} AND is_delivered = 0 AND kanban_date = '{$pick_date}'";
+            } else {
+                $query
+                    = "SELECT * FROM {$tblConveyancePicks} WHERE cycle='{$post_data['cycle']}' AND dolly='{$post_data['zone']}' AND is_delivered = 0 AND kanban_date = '{$pick_date}'";
+            }
+        }
+
         $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
         $num = sqlsrv_num_rows($result);
         if ($num == 0) {
@@ -3986,14 +3997,18 @@ function check_pick_finish($post_data)
                 echo 'success';
             }
         } else {
-            $query
-                = "SELECT * FROM {$tblConveyancePicks} WHERE cycle={$post_data['cycle']} AND is_completed = 1 AND is_delivered = 0 AND is_help = 1 AND kanban_date='{$pick_date}'";
-            $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
-            $num = sqlsrv_num_rows($result);
-            if ($num == 0) {
+            $query1
+                = "SELECT * FROM {$tblConveyancePicks} WHERE cycle={$post_data['cycle']} AND is_delivered = 0 AND is_help = 1 AND kanban_date = '{$pick_date}' AND dolly='{$post_data['zone']}'";
+            $result1 = sqlsrv_query($dbMssql, $query1, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+            $num1 = sqlsrv_num_rows($result1);
+            if ($num1 == 0) {
                 echo 'in_progress';
             } else {
-                echo 'in_help';
+                if ($num1 == $num) {
+                    echo 'success';
+                } else {
+                    echo 'in_help';
+                }
             }
         }
     }
@@ -4436,14 +4451,14 @@ function get_reason_by_name($name)
 
 function save_reason($post_data)
 {
-    global $db, $tblReason;
+    global $dbMssql, $tblReason;
     $reason_id = $post_data['reason_id'];
     $reason_name = $post_data['reason_name'];
     if ($reason_id == 0) {
-        $query = "INSERT INTO {$tblReason}  (`name`)
-                    values ('{$reason_name}')";
-        $result = $db->query($query);
-        $insert_id = $db->insert_id;
+        $query = "INSERT INTO {$tblReason}  ([name])
+                    values ('{$reason_name}');SELECT SCOPE_IDENTITY() as inserted_id;";
+        sqlsrv_query($dbMssql, $query);
+        $insert_id = getLastInsertedId($dbMssql);
         echo '<tr id="tr_reason_' . $insert_id . '">';
         echo '<td>' . $reason_name . '</td>';
         echo '<td style="text-align: center;"><button type="button" class="btn btn-danger delete-reason" value="'
@@ -4451,8 +4466,8 @@ function save_reason($post_data)
         echo '</tr>';
     } else {
         $query
-            = "UPDATE {$tblReason} SET `name` = '{$reason_name}' WHERE `id` = {$reason_id}";
-        $result = $db->query($query);
+            = "UPDATE {$tblReason} SET [name = '{$reason_name}' WHERE [id] = {$reason_id}";
+        $result = sqlsrv_query($dbMssql, $query);
         if ($result) {
             echo 'Ok';
         } else {
@@ -4479,10 +4494,10 @@ function update_reason($post_data)
 
 function delete_reason($post_data)
 {
-    global $db, $tblReason;
+    global $dbMssql, $tblReason;
     $reason_id = $post_data['reason_id'];
-    $query = "DELETE FROM {$tblReason} WHERE `id` = {$reason_id}";
-    $result = $db->query($query);
+    $query = "DELETE FROM {$tblReason} WHERE id = {$reason_id}";
+    $result = sqlsrv_query($dbMssql, $query);
     if ($result) {
         echo 'Ok';
     } else {
@@ -4679,17 +4694,27 @@ function get_kanban_id_by_name($post_data)
 
 function get_system_fill_percentage($post_data)
 {
-    global $db, $tblStocking;
+    global $dbMssql, $tblStocking;
     $query
         = "SELECT sum(allocation*height) as total FROM {$tblStocking} WHERE area='System Fill'";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
+    $result = sqlsrv_query($dbMssql, $query);
+    $ress = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $ress[] = $row;
+    }
+    if(count($ress) == 0) return;
+    $res = $ress[0];
     $data['total'] = $res['total'];
 
     $query
         = "select sum(A.booked_in - A.booked_out) as filled from scan_log as A inner join parts as B on UPPER(A.part) = UPPER(B.part_no) AND B.sf = 1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
+    $result = sqlsrv_query($dbMssql, $query);
+    $ress = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $ress[] = $row;
+    }
+    if(count($ress) == 0) return;
+    $res = $ress[0];
     $data['filled'] = $res['filled'];
 
     echo json_encode($data, true);
@@ -4697,17 +4722,27 @@ function get_system_fill_percentage($post_data)
 
 function get_part_stocking_percentage($post_data)
 {
-    global $db, $tblStocking;
+    global $dbMssql, $tblStocking;
     $query
         = "SELECT sum(allocation*height) as total FROM {$tblStocking} WHERE area='Part Stocking'";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
+    $result = sqlsrv_query($dbMssql, $query);
+    $ress = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $ress[] = $row;
+    }
+    if(count($ress) == 0) return;
+    $res = $ress[0];
     $data['total'] = $res['total'];
 
     $query
         = "select sum(A.booked_in - A.booked_out) as filled from scan_log as A inner join parts as B on UPPER(A.part) = UPPER(B.part_no) AND B.ps = 1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
+    $result = sqlsrv_query($dbMssql, $query);
+    $ress = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $ress[] = $row;
+    }
+    if(count($ress) == 0) return;
+    $res = $ress[0];
     $data['filled'] = $res['filled'];
 
     echo json_encode($data, true);
@@ -4715,17 +4750,27 @@ function get_part_stocking_percentage($post_data)
 
 function get_free_location_percentage($post_data)
 {
-    global $db, $tblStocking;
+    global $dbMssql, $tblStocking;
     $query
         = "SELECT sum(allocation*height) as total FROM {$tblStocking} WHERE area='Free Location'";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
+    $result = sqlsrv_query($dbMssql, $query);
+    $ress = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $ress[] = $row;
+    }
+    if(count($ress) == 0) return;
+    $res = $ress[0];
     $data['total'] = $res['total'];
 
     $query
         = "select sum(A.booked_in - A.booked_out) as filled from scan_log as A inner join parts as B on UPPER(A.part) = UPPER(B.part_no) AND B.fl = 1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
+    $result = sqlsrv_query($dbMssql, $query);        
+    $ress = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $ress[] = $row;
+    }
+    if(count($ress) == 0) return;
+    $res = $ress[0];
     $data['filled'] = $res['filled'];
 
     echo json_encode($data, true);
@@ -4858,45 +4903,67 @@ function get_all_session_json($post_data)
 
 function get_pick_reason_chat_value($post_data)
 {
-    global $db, $tblConveyancePicks, $tblReason;
+    global $dbMssql, $tblConveyancePicks, $tblReason;
     $query
-        = "SELECT count(*) as count, t1.completed_reason as reason, t2.`name` FROM {$tblConveyancePicks} as t1 INNER JOIN {$tblReason} as t2 ON t1.completed_reason=t2.id AND t1.completed_reason <> 0 GROUP BY t1.completed_reason;";
-    $result = $db->query($query);
-    $res = mysqli_fetch_all($result, MYSQLI_ASSOC);
-    $data['val'] = array_column($res, "count");
-    $data['reason'] = array_column($res, "name");
+        = "SELECT count(*) as count, t1.completed_reason as reason, t2.name FROM {$tblConveyancePicks} as t1 INNER JOIN {$tblReason} as t2 ON t1.completed_reason=t2.id AND t1.completed_reason <> 0 GROUP BY t1.completed_reason, t2.name;";
+
+    $result = sqlsrv_query($dbMssql, $query);
+    $ress = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $ress[] = $row;
+    }
+    if(count($ress) == 0) return;
+
+    $data['val'] = array_column($ress, "count");
+    $data['reason'] = array_column($ress, "name");
 
     echo json_encode($data, true);
 }
 
 function get_delivery_reason_chat_value($post_data)
 {
-    global $db, $tblConveyancePicks, $tblReason;
+    global $dbMssql, $tblConveyancePicks, $tblReason;
     $query
-        = "SELECT count(*) as count, t1.delivered_reason as reason, t2.`name` FROM {$tblConveyancePicks} as t1 INNER JOIN {$tblReason} as t2 ON t1.delivered_reason=t2.id AND t1.delivered_reason <> 0 GROUP BY t1.delivered_reason;";
-    $result = $db->query($query);
-    $res = mysqli_fetch_all($result, MYSQLI_ASSOC);
-    $data['val'] = array_column($res, "count");
-    $data['reason'] = array_column($res, "name");
+        = "SELECT count(*) as count, t1.delivered_reason as reason, t2.name FROM {$tblConveyancePicks} as t1 INNER JOIN {$tblReason} as t2 ON t1.delivered_reason=t2.id AND t1.delivered_reason <> 0 GROUP BY t1.delivered_reason, t2.name";
+    
+    $result = sqlsrv_query($dbMssql, $query);
+    $ress = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $ress[] = $row;
+    }
+    if(count($ress) == 0) return;
+
+    $data['val'] = array_column($ress, "count");
+    $data['reason'] = array_column($ress, "name");
 
     echo json_encode($data, true);
 }
 
 function get_part_chat_value($post_data)
 {
-    global $db, $tblScanLog;
+    global $dbMssql, $tblScanLog;
     $query = "SELECT sum(booked_in-booked_out) as total FROM {$tblScanLog}";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
+    $ress = [];
+    $result = sqlsrv_query($dbMssql, $query);
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $ress[] = $row;
+    }
+    if(count($ress) == 0) return;
+    $res = $ress[0];
     $data['total'] = $res['total'];
 
     $query
         = "select sum(booked_in-booked_out) as val, part FROM {$tblScanLog} GROUP BY part";
-    $result = $db->query($query);
-    $res = mysqli_fetch_all($result, MYSQLI_ASSOC);
+    $ress = [];
+    $result = sqlsrv_query($dbMssql, $query);
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $ress[] = $row;
+    }
+    if(count($ress) == 0) return;
+    
     // $res =  mysqli_fetch_array($result);
-    $data['val'] = array_column($res, "val");
-    $data['part'] = array_column($res, "part");
+    $data['val'] = array_column($ress, "val");
+    $data['part'] = array_column($ress, "part");
 
 
     $data['users'] = get_all_sessions();
@@ -4939,16 +5006,16 @@ function save_cycle_setting($post_data)
 
 function save_opr_pick_delivery_setting($post_data)
 {
-    global $db, $tblOPRSetting;
+    global $dbMssql, $tblOPRSetting;
     $opr_type = $post_data['opr_type'];
     $val = $post_data['val'];
 
     $query = "DELETE FROM {$tblOPRSetting} WHERE opr_type='{$opr_type}'";
-    $db->query($query);
+    sqlsrv_query($dbMssql, $query);
     $query
-        = "INSERT INTO {$tblOPRSetting}  (`opr_type`, `value`) VALUES ('{$opr_type}', {$val})";
+        = "INSERT INTO {$tblOPRSetting}  (opr_type, [value]) VALUES ('{$opr_type}', {$val})";
 
-    $result = $db->query($query);
+    $result = sqlsrv_query($dbMssql, $query);
     if ($result) {
         echo 'Ok';
     } else {
@@ -4976,22 +5043,29 @@ function save_driver_setting($post_data)
 function get_andons_info_teamleader($post_data)
 {
     //$query = "UPDATE {$tblConveyancePicks} SET is_completed = 0, is_help = 1, helped_user = '{$user}', helped_at = '{$today}' WHERE id = {$kanban_id}";
-    global $db, $tblConveyancePicks, $tblReason;
+    global $dbMssql, $tblConveyancePicks, $tblReason;
     $today = $post_data['today'];
     // $yesterday = $post_data['yesterday'];
     $query
         = "SELECT {$tblConveyancePicks}.kanban, {$tblConveyancePicks}.cycle, {$tblConveyancePicks}.helped_at, {$tblConveyancePicks}.deliveried_at, {$tblConveyancePicks}.picked_at,  {$tblReason}.name FROM {$tblConveyancePicks} LEFT JOIN {$tblReason} ON {$tblConveyancePicks}.completed_reason = {$tblReason}.id   WHERE ({$tblConveyancePicks}.kanban_date = '{$today}') AND  {$tblConveyancePicks}.is_help =1 AND {$tblConveyancePicks}.picked_at IS NOT NULL union SELECT {$tblConveyancePicks}.kanban, {$tblConveyancePicks}.cycle, {$tblConveyancePicks}.helped_at, {$tblConveyancePicks}.deliveried_at, {$tblConveyancePicks}.picked_at,  {$tblReason}.name FROM {$tblConveyancePicks} LEFT JOIN {$tblReason} ON {$tblConveyancePicks}.delivered_reason = {$tblReason}.id   WHERE ({$tblConveyancePicks}.kanban_date = '{$today}') AND  {$tblConveyancePicks}.is_help =1 AND {$tblConveyancePicks}.deliveried_at IS NOT NULL";
     // $query = "SELECT {$tblConveyancePicks}.kanban, {$tblConveyancePicks}.cycle, {$tblConveyancePicks}.helped_at, {$tblConveyancePicks}.deliveried_at, {$tblConveyancePicks}.picked_at,  {$tblReason}.name FROM {$tblConveyancePicks} LEFT JOIN {$tblReason} ON {$tblConveyancePicks}.completed_reason = {$tblReason}.id   WHERE ({$tblConveyancePicks}.helped_at between '{$yesterday}' AND  '{$today}') AND  {$tblConveyancePicks}.is_help =1 AND {$tblConveyancePicks}.picked_at IS NOT NULL union SELECT {$tblConveyancePicks}.kanban, {$tblConveyancePicks}.cycle, {$tblConveyancePicks}.helped_at, {$tblConveyancePicks}.deliveried_at, {$tblConveyancePicks}.picked_at,  {$tblReason}.name FROM {$tblConveyancePicks} LEFT JOIN {$tblReason} ON {$tblConveyancePicks}.delivered_reason = {$tblReason}.id   WHERE ({$tblConveyancePicks}.helped_at between '{$yesterday}' AND  '{$today}') AND  {$tblConveyancePicks}.is_help =1 AND {$tblConveyancePicks}.deliveried_at IS NOT NULL";
-    $result = $db->query($query);
-    $res = mysqli_fetch_all($result);
+    $result = sqlsrv_query($dbMssql, $query);
+    $ress = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $ress[] = $row;
+    }
+    if(count($ress) == 0) return;
+    $res = $ress[0];
+    
     $query = "SELECT name from {$tblReason}";
-    $result = $db->query($query);
-    $res2 = mysqli_fetch_all($result);
-    // $data['kanban'] = array_column($res, "kanban");
-    // $data['cycle'] = array_column($res, "cycle");
-    // $data['helped_at'] = array_column($res, "helped_at");
-    // $data['picked_at'] = array_column($res, "picked_at");
-    // $data['deliveried_at'] = array_column($res, "deliveried_at");
+    $result = sqlsrv_query($dbMssql, $query);
+    $ress = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $ress[] = $row;
+    }
+    if(count($ress) == 0) return;
+    $res2 = $ress[0];
+
     $data['res'] = $res;
     $data['reasons'] = $res2;
     echo json_encode($data, true);
@@ -5012,6 +5086,7 @@ function get_remaining_incomplete_pick($post_data)
     // $query = "SELECT kanban, cycle, (SELECT max(cycle) from {$tblConveyancePicks}  WHERE is_help = 1 AND is_completed = 0  AND kanban_date = '{$today}') AS max_cycle from {$tblConveyancePicks} WHERE is_help = 1 AND is_completed = 0 AND kanban_date = '{$today}'";
     $query
         = "SELECT cp.kanban AS kanban, cp.cycle AS cycle, cp.helped_at AS helped_at, u.username AS username FROM {$tblConveyancePicks} AS cp INNER JOIN {$tblUsers} AS u ON cp.helped_user = u.ID AND cp.kanban_date >= '{$yesterday}' AND cp.kanban_date <= '{$today}' AND cp.is_help = 1 AND cp.is_completed =0";
+
     $result = sqlsrv_query($dbMssql, $query);
     $res = [];
     while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
@@ -5034,71 +5109,81 @@ function get_remaining_incomplete_pick($post_data)
 
 function get_remaining_incomplete_pick_team_leader($post_data)
 {
-    global $db, $tblConveyancePicks, $tblUsers, $tblHelpAlarm;
+    global $dbMssql, $tblConveyancePicks, $tblUsers, $tblHelpAlarm;
     $today = $post_data['today'];
     $yesterday = $post_data['yesterday'];
     $query
         = "SELECT count(distinct cycle) as remaining_cycles FROM {$tblConveyancePicks} WHERE kanban_date = '{$today}' AND is_help=1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
+    $result = sqlsrv_query($dbMssql, $query);
+    $ress = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $ress[] = $row;
+    }
+    if(count($ress) == 0) return;
+    $res = $ress[0];
     $data['remaining_cycles'] = $res['remaining_cycles'];
 
     // $query = "SELECT cp.id,cp.is_pick, cp.is_completed,cp.is_delivered, cp.kanban AS kanban, cp.cycle AS cycle, cp.helped_at AS helped_at, u.username AS username FROM {$tblConveyancePicks} AS cp INNER JOIN {$tblUsers} AS u ON cp.helped_user = u.ID AND cp.kanban_date >= '{$yesterday}' AND cp.kanban_date <= '{$today}' AND cp.is_help = 1";
     $query
         = "SELECT cp.id,cp.is_pick, cp.is_completed,cp.is_delivered, cp.kanban AS kanban, cp.cycle AS cycle, cp.helped_at AS helped_at, u.username AS username FROM {$tblConveyancePicks} AS cp INNER JOIN {$tblUsers} AS u ON cp.helped_user = u.ID AND cp.kanban_date = DATE('{$today}') AND cp.is_help = 1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_all($result, MYSQLI_ASSOC);
+    $result = sqlsrv_query($dbMssql, $query);
+    $ress = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $ress[] = $row;
+    }
+    if(count($ress) == 0) return;
+
     // $res =  mysqli_fetch_array($result);
-    $data['id'] = array_column($res, "id");
-    $data['is_completed'] = array_column($res, "is_completed");
-    $data['is_delivered'] = array_column($res, "is_delivered");
-    $data['incomplete_kanban'] = array_column($res, "kanban");
-    $data['is_pick'] = array_column($res, "is_pick");
-    $data['incomplete_cycle'] = array_column($res, "cycle");
-    $data['helped_time'] = array_column($res, "helped_at");
-    $data['helped_user'] = array_column($res, "username");
+    $data['id'] = array_column($ress, "id");
+    $data['is_completed'] = array_column($ress, "is_completed");
+    $data['is_delivered'] = array_column($ress, "is_delivered");
+    $data['incomplete_kanban'] = array_column($ress, "kanban");
+    $data['is_pick'] = array_column($ress, "is_pick");
+    $data['incomplete_cycle'] = array_column($ress, "cycle");
+    $data['helped_time'] = array_column($ress, "helped_at");
+    $data['helped_user'] = array_column($ress, "username");
 
     $query
         = "SELECT MAX(cycle) as max_cycle FROM {$tblConveyancePicks} WHERE kanban_date = DATE('{$today}') AND is_help=1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['max_cycle'] = $res['max_cycle'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['max_cycle'] = $res->max_cycle;
 
     $query
         = "SELECT COUNT(*) as incomplete_pick_count FROM {$tblConveyancePicks} WHERE kanban_date = DATE('{$today}') AND is_help=1 AND is_completed = 0 AND is_pick=1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['incomplete_pick_count'] = $res['incomplete_pick_count'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['incomplete_pick_count'] = $res->incomplete_pick_count;
 
     $query
         = "SELECT COUNT(*) as incomplete_delivery_count FROM {$tblConveyancePicks} WHERE kanban_date = DATE('{$today}')  AND is_help=1 AND is_delivered = 0 AND is_pick=0";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['incomplete_delivery_count'] = $res['incomplete_delivery_count'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['incomplete_delivery_count'] = $res->incomplete_delivery_count;
 
     $query
         = "SELECT COUNT(*) as incomplete_stocking_count FROM {$tblHelpAlarm} WHERE DATE(clicked_time) = DATE('{$today}')  AND is_confirm=0 AND page ='Stocking'";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['incomplete_stocking_count'] = $res['incomplete_stocking_count'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['incomplete_stocking_count'] = $res->incomplete_stocking_count;
 
     $query
         = "SELECT COUNT(*) as incomplete_devan_count FROM {$tblHelpAlarm} WHERE DATE(clicked_time) = DATE('{$today}')  AND is_confirm=0 AND page ='Container Devan'";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['incomplete_devan_count'] = $res['incomplete_devan_count'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['incomplete_devan_count'] = $res->incomplete_devan_count;
 
     $query
         = "SELECT COUNT(*) as incomplete_driver_count FROM {$tblHelpAlarm} WHERE DATE(clicked_time = '{$today}')  AND is_confirm=0 AND page ='Driver'";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['incomplete_driver_count'] = $res['incomplete_driver_count'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['incomplete_driver_count'] = $res->incomplete_driver_count;
 
     $query
         = "SELECT COUNT(*) as complete_count FROM {$tblConveyancePicks} WHERE DATE(kanban_date) = DATE('{$today}')  AND is_completed = 1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['complete_count'] = $res['complete_count'];
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['complete_count'] = $res->complete_count;
 
     $data['reasons'] = get_all_reason();
 
@@ -5222,54 +5307,55 @@ function get_remaining_build_delivery($post_data)
 
 function get_last_upload_time_team_leader($post_data)
 {
-    global $db, $tblContainerDevan, $tblConveyancePicks, $tblPart2Kanban;
+    global $dbMssql, $tblContainerDevan, $tblConveyancePicks, $tblPart2Kanban;
     $query
-        = "SELECT CONCAT(`date`, ' ', `time`) AS `time` FROM {$tblContainerDevan} ORDER BY `date` DESC, `time` DESC LIMIT 1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['devan_schedule'] = $res['time'];
+        = "SELECT TOP 1 CONCAT(date, ' ', time) AS time FROM {$tblContainerDevan} ORDER BY date DESC, time DESC";
+
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['devan_schedule'] = $res->time;
 
     $query
-        = "SELECT imported_at FROM {$tblConveyancePicks} ORDER BY imported_at DESC LIMIT 1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['pick_del_plan'] = $res['imported_at'];
+        = "SELECT TOP 1 imported_at FROM {$tblConveyancePicks} ORDER BY imported_at DESC";
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['pick_del_plan'] = $res->imported_at;
 
     $query
-        = "SELECT imported_at FROM {$tblConveyancePicks} ORDER BY imported_at DESC LIMIT 1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['master_kanban'] = $res['imported_at'];
+        = "SELECT TOP 1 imported_at FROM {$tblConveyancePicks} ORDER BY imported_at DESC";
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['master_kanban'] = $res->imported_at;
 
     echo json_encode($data, true);
 }
 
 function get_opr_settings($post_data)
 {
-    global $db, $tblCycleSetting, $tblOPRSetting, $tblDriverSetting;
+    global $dbMssql, $tblCycleSetting, $tblOPRSetting, $tblDriverSetting;
     $data['renban_no_prefix'] = get_setting('renban_no_prefix');
 
-    $query = "SELECT `value` FROM {$tblCycleSetting} LIMIT 1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['opr_cycle_settings'] = $res['value'];
+    $query = "SELECT TOP 1 value FROM {$tblCycleSetting}";
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['opr_cycle_settings'] = $res->value;
 
     $query
-        = "SELECT `value` FROM {$tblOPRSetting} WHERE opr_type = 'pick' LIMIT 1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['opr_pick_settings'] = $res['value'];
+        = "SELECT TOP 1 value FROM {$tblOPRSetting} WHERE opr_type = 'pick'";
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['opr_pick_settings'] = $res->value;
 
     $query
-        = "SELECT `value` FROM {$tblOPRSetting} WHERE opr_type = 'delivery' LIMIT 1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['opr_del_settings'] = $res['value'];
+        = "SELECT TOP 1 value FROM {$tblOPRSetting} WHERE opr_type = 'delivery'";
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['opr_del_settings'] = $res->value;
 
-    $query = "SELECT `value` FROM {$tblDriverSetting} LIMIT 1";
-    $result = $db->query($query);
-    $res = mysqli_fetch_array($result);
-    $data['driver_settings'] = $res['value'];
+    $query = "SELECT TOP 1 value FROM {$tblDriverSetting}";
+    $result = sqlsrv_query($dbMssql, $query);
+    $res = sqlsrv_fetch_object($result);
+    $data['driver_settings'] = $res->value;
 
     echo json_encode($data, true);
 }
@@ -5291,12 +5377,19 @@ function set_driver_member($post_data)
 
 function get_low_stocks($post_data)
 {
-    global $db, $tblScanLog, $tblParts;
+    global $dbMssql, $tblScanLog, $tblParts;
     $query
-        = "SELECT upper(t1.part_no) as part, SUM(t2.booked_in-t2.booked_out) AS count, t1.level_low, t1.level_medium FROM {$tblParts} AS t1 LEFT JOIN {$tblScanLog} AS t2 ON t1.part_no = t2.part GROUP BY t1.part_no";
+        = "SELECT upper(t1.part_no) as part, SUM(t2.booked_in-t2.booked_out) AS count, t1.level_low, t1.level_medium FROM {$tblParts} AS t1 LEFT JOIN {$tblScanLog} AS t2 ON t1.part_no = t2.part GROUP BY t1.part_no, t1.level_low, t1.level_medium";
     //$query = "SELECT upper(sl.part) as part, pt.amount, sum(sl.booked_in-sl.booked_out) as count, pt.level_low, pt.level_medium FROM {$tblScanLog} as sl INNER JOIN {$tblParts} pt ON upper(sl.part)=upper(pt.part_no) GROUP BY sl.part";
-    $result = $db->query($query);
-    $res_zones = mysqli_fetch_all($result, MYSQLI_ASSOC);
+    
+    $result = sqlsrv_query($dbMssql, $query);
+    $ress = [];
+    while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+        $ress[] = $row;
+    }
+    if(count($ress) == 0) return;
+    $res_zones = $ress[0];
+
     $data['low_stocks'] = $res_zones;
 
     echo json_encode($data, true);
