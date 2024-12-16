@@ -2050,6 +2050,7 @@ $booked_in_out = get_booked_in_out('Stocking', $shift_inf['shift'], $shift_inf['
                     dataType: 'HTML',
                 }).done(function(response) {
                     var data = JSON.parse(response);
+                    console.log(data)
                     $("#upload_time_devan_schedule").text(data.devan_schedule);
                     $("#upload_time_pick_del_plan").text(data.pick_del_plan);
                     $("#upload_time_master_kanban").text(data.pick_del_plan);

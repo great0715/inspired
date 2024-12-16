@@ -1121,131 +1121,131 @@ function read_history($post_data)
     echo '</table>';
 }
 
-function read_kanban_list()
-{
-    global $db;
-    $updateQuery
-        = "UPDATE `excel_pick_list` JOIN `final_data` ON `excel_pick_list`.Container = `final_data`.Container SET `excel_pick_list`.is_complete = `final_data`.complete WHERE `excel_pick_list`.Module = `final_data`.Module";
-    $db->query($updateQuery);
+// function read_kanban_list()
+// {
+//     global $db;
+//     $updateQuery
+//         = "UPDATE `excel_pick_list` JOIN `final_data` ON `excel_pick_list`.Container = `final_data`.Container SET `excel_pick_list`.is_complete = `final_data`.complete WHERE `excel_pick_list`.Module = `final_data`.Module";
+//     $db->query($updateQuery);
 
-    $query = "SELECT * FROM `excel_pick_list` GROUP BY Kanban";
-    $result = $db->query($query);
-    echo '<table id="kanban_table" class="table table-bordered table-striped dataTable dtr-inline">';
-    echo '<thead>';
-    echo '<th>Kanban</th>';
-    echo '<th>Stock</th>';
-    echo '<th>Part number</th>';
-    echo '<th>Max</th>';
-    echo '<th>Min</th>';
-    echo '</thead>';
-    echo '<tbody>';
-    while ($row = mysqli_fetch_object($result)) {
-        $itemQuery = "SELECT * FROM `excel_pick_list` WHERE Kanban = '"
-            . $row->Kanban . "' AND is_complete = 1";
-        $kanbanQuery = "SELECT * FROM `part_to_kanban` WHERE Kanban = '"
-            . $row->Kanban . "'";
-        $itemResult = $db->query($itemQuery);
-        $kanbanResult = $db->query($kanbanQuery);
+//     $query = "SELECT * FROM `excel_pick_list` GROUP BY Kanban";
+//     $result = $db->query($query);
+//     echo '<table id="kanban_table" class="table table-bordered table-striped dataTable dtr-inline">';
+//     echo '<thead>';
+//     echo '<th>Kanban</th>';
+//     echo '<th>Stock</th>';
+//     echo '<th>Part number</th>';
+//     echo '<th>Max</th>';
+//     echo '<th>Min</th>';
+//     echo '</thead>';
+//     echo '<tbody>';
+//     while ($row = mysqli_fetch_object($result)) {
+//         $itemQuery = "SELECT * FROM `excel_pick_list` WHERE Kanban = '"
+//             . $row->Kanban . "' AND is_complete = 1";
+//         $kanbanQuery = "SELECT * FROM `part_to_kanban` WHERE Kanban = '"
+//             . $row->Kanban . "'";
+//         $itemResult = $db->query($itemQuery);
+//         $kanbanResult = $db->query($kanbanQuery);
 
-        $stock = 0;
-        $max = '';
-        $min = '';
-        while ($rowItem = mysqli_fetch_object($itemResult)) {
-            $stock += (int) $rowItem->No_box;
-        }
+//         $stock = 0;
+//         $max = '';
+//         $min = '';
+//         while ($rowItem = mysqli_fetch_object($itemResult)) {
+//             $stock += (int) $rowItem->No_box;
+//         }
 
-        $deliveryQuery
-            = "SELECT * FROM `conveyance_picks` WHERE kanban = '{$row->Kanban}' AND is_delivered = 1";
-        $deliveryResult = $db->query($deliveryQuery);
-        $deliveryCount = mysqli_num_rows($deliveryResult);
-        $stock = $stock - $deliveryCount;
+//         $deliveryQuery
+//             = "SELECT * FROM `conveyance_picks` WHERE kanban = '{$row->Kanban}' AND is_delivered = 1";
+//         $deliveryResult = $db->query($deliveryQuery);
+//         $deliveryCount = mysqli_num_rows($deliveryResult);
+//         $stock = $stock - $deliveryCount;
 
-        if ($stock < 0) {
-            $stock = 0;
-        }
+//         if ($stock < 0) {
+//             $stock = 0;
+//         }
 
-        if (mysqli_num_rows($kanbanResult) > 0) {
-            $obj = mysqli_fetch_object($kanbanResult);
-            $max = $obj->max > 0 ? $obj->max : "";
-            $min = $obj->min > 0 ? $obj->min : "";
-        }
+//         if (mysqli_num_rows($kanbanResult) > 0) {
+//             $obj = mysqli_fetch_object($kanbanResult);
+//             $max = $obj->max > 0 ? $obj->max : "";
+//             $min = $obj->min > 0 ? $obj->min : "";
+//         }
 
-        echo '<tr>';
-        echo '<td>' . $row->Kanban . '</td>';
-        echo '<td>' . $stock . '</td>';
-        echo '<td>' . $row->Part_number . '</td>';
-        echo '<td>' . $max . '</td>';
-        echo '<td>' . $min . '</td>';
-        echo '</tr>';
-    }
-    echo '</tbody>';
-    echo '</table>';
-}
+//         echo '<tr>';
+//         echo '<td>' . $row->Kanban . '</td>';
+//         echo '<td>' . $stock . '</td>';
+//         echo '<td>' . $row->Part_number . '</td>';
+//         echo '<td>' . $max . '</td>';
+//         echo '<td>' . $min . '</td>';
+//         echo '</tr>';
+//     }
+//     echo '</tbody>';
+//     echo '</table>';
+// }
 
-function read_stock_level()
-{
-    global $db;
+// function read_stock_level()
+// {
+//     global $db;
 
-    $updateQuery
-        = "UPDATE `excel_pick_list` JOIN `final_data` ON `excel_pick_list`.Container = `final_data`.Container SET `excel_pick_list`.is_complete = `final_data`.complete WHERE `excel_pick_list`.Module = `final_data`.Module";
-    $db->query($updateQuery);
+//     $updateQuery
+//         = "UPDATE `excel_pick_list` JOIN `final_data` ON `excel_pick_list`.Container = `final_data`.Container SET `excel_pick_list`.is_complete = `final_data`.complete WHERE `excel_pick_list`.Module = `final_data`.Module";
+//     $db->query($updateQuery);
 
-    // $query = "SELECT a.*, b.* FROM `excel_pick_list` AS a LEFT JOIN `part_to_kanban` AS b ON a.`Kanban` = b.`kanban` WHERE (a.`No_box` < b.`min` OR a.`No_box` > b.`max`) AND a.`is_complete` = 1 GROUP BY a.`Kanban`";
-    $query
-        = "SELECT a.*, b.*,c.* FROM `excel_pick_list` AS a LEFT JOIN `part_to_kanban` AS b ON a.`Kanban` = b.`kanban` LEFT JOIN `final_data` AS c ON a.`Container` = c.`container` WHERE a.`Module` = c.`module` AND (a.`No_box` < b.`min` OR a.`No_box` > b.`max`) AND a.`is_complete` = 1 GROUP BY a.`Kanban`";
-    $result = $db->query($query);
-    $minContent = "";
-    $maxContent = "";
-    while ($row = mysqli_fetch_object($result)) {
-        $stock = 0;
-        $itemQuery = "SELECT * FROM `excel_pick_list` WHERE Kanban = '"
-            . $row->Kanban . "' AND is_complete = 1";
-        $itemResult = $db->query($itemQuery);
+//     // $query = "SELECT a.*, b.* FROM `excel_pick_list` AS a LEFT JOIN `part_to_kanban` AS b ON a.`Kanban` = b.`kanban` WHERE (a.`No_box` < b.`min` OR a.`No_box` > b.`max`) AND a.`is_complete` = 1 GROUP BY a.`Kanban`";
+//     $query
+//         = "SELECT a.*, b.*,c.* FROM `excel_pick_list` AS a LEFT JOIN `part_to_kanban` AS b ON a.`Kanban` = b.`kanban` LEFT JOIN `final_data` AS c ON a.`Container` = c.`container` WHERE a.`Module` = c.`module` AND (a.`No_box` < b.`min` OR a.`No_box` > b.`max`) AND a.`is_complete` = 1 GROUP BY a.`Kanban`";
+//     $result = $db->query($query);
+//     $minContent = "";
+//     $maxContent = "";
+//     while ($row = mysqli_fetch_object($result)) {
+//         $stock = 0;
+//         $itemQuery = "SELECT * FROM `excel_pick_list` WHERE Kanban = '"
+//             . $row->Kanban . "' AND is_complete = 1";
+//         $itemResult = $db->query($itemQuery);
 
-        while ($rowItem = mysqli_fetch_object($itemResult)) {
-            $stock += (int) $rowItem->No_box;
-        }
+//         while ($rowItem = mysqli_fetch_object($itemResult)) {
+//             $stock += (int) $rowItem->No_box;
+//         }
 
-        $deliveryQuery
-            = "SELECT * FROM `conveyance_picks` WHERE kanban = '{$row->Kanban}' AND is_delivered = 1";
-        $deliveryResult = $db->query($deliveryQuery);
-        $deliveryCount = mysqli_num_rows($deliveryResult);
-        $stock = $stock - $deliveryCount;
-        $deliveryResult = mysqli_fetch_object($deliveryResult);
-        if ($row->min != 0 && $row->max != 0) {
-            $inName = str_replace(' ', '&nbsp;', $row->finishNm);
-            $inTime = str_replace(' ', '&nbsp;', $row->finishTime);
-            $outName = str_replace(
-                ' ',
-                '&nbsp;',
-                isset($deliveryResult) ? $deliveryResult->delivered_user : ""
-            );
-            $outTime = str_replace(
-                ' ',
-                '&nbsp;',
-                isset($deliveryResult) ? $deliveryResult->deliveried_at : ""
-            );
-            if ($stock < $row->min) {
-                $minContent = $minContent . "<div class='low-item' onclick=kanban_detail('{$row->Kanban}','{$stock}/{$row->min}','{$inName}','{$inTime}','{$outName}','{$outTime}','{$deliveryCount}')>
-                                        <h2>{$row->Kanban}</h2>
-                                        <h2>{$stock}/{$row->min}</h2>
-                                    </div>";
-            } else {
-                if ($stock > $row->max) {
-                    $maxContent = $maxContent . "<div class='high-item' onclick=kanban_detail('{$row->Kanban}','{$stock}/{$row->max}','{$inName}','{$inTime}','{$outName}','{$outTime}','{$deliveryCount}')>
-                                        <h2>{$row->Kanban}</h2>
-                                        <h2>{$stock}/{$row->max}</h2>
-                                    </div>";
-                }
-            }
-        }
-    }
-    $arr = [
-        'min' => strlen($minContent) > 0 ? $minContent : "No data",
-        'max' => strlen($maxContent) > 0 ? $maxContent : "No data"
-    ];
-    echo json_encode($arr);
-}
+//         $deliveryQuery
+//             = "SELECT * FROM `conveyance_picks` WHERE kanban = '{$row->Kanban}' AND is_delivered = 1";
+//         $deliveryResult = $db->query($deliveryQuery);
+//         $deliveryCount = mysqli_num_rows($deliveryResult);
+//         $stock = $stock - $deliveryCount;
+//         $deliveryResult = mysqli_fetch_object($deliveryResult);
+//         if ($row->min != 0 && $row->max != 0) {
+//             $inName = str_replace(' ', '&nbsp;', $row->finishNm);
+//             $inTime = str_replace(' ', '&nbsp;', $row->finishTime);
+//             $outName = str_replace(
+//                 ' ',
+//                 '&nbsp;',
+//                 isset($deliveryResult) ? $deliveryResult->delivered_user : ""
+//             );
+//             $outTime = str_replace(
+//                 ' ',
+//                 '&nbsp;',
+//                 isset($deliveryResult) ? $deliveryResult->deliveried_at : ""
+//             );
+//             if ($stock < $row->min) {
+//                 $minContent = $minContent . "<div class='low-item' onclick=kanban_detail('{$row->Kanban}','{$stock}/{$row->min}','{$inName}','{$inTime}','{$outName}','{$outTime}','{$deliveryCount}')>
+//                                         <h2>{$row->Kanban}</h2>
+//                                         <h2>{$stock}/{$row->min}</h2>
+//                                     </div>";
+//             } else {
+//                 if ($stock > $row->max) {
+//                     $maxContent = $maxContent . "<div class='high-item' onclick=kanban_detail('{$row->Kanban}','{$stock}/{$row->max}','{$inName}','{$inTime}','{$outName}','{$outTime}','{$deliveryCount}')>
+//                                         <h2>{$row->Kanban}</h2>
+//                                         <h2>{$stock}/{$row->max}</h2>
+//                                     </div>";
+//                 }
+//             }
+//         }
+//     }
+//     $arr = [
+//         'min' => strlen($minContent) > 0 ? $minContent : "No data",
+//         'max' => strlen($maxContent) > 0 ? $maxContent : "No data"
+//     ];
+//     echo json_encode($arr);
+// }
 
 
 /*
@@ -1604,119 +1604,119 @@ function get_live_stocking_overview($post_data)
     echo json_encode($data, true);
 }
 
-function get_live_deban($post_data)
-{
-    global $db, $tblContainerDevan, $today;
+// function get_live_deban($post_data)
+// {
+//     global $db, $tblContainerDevan, $today;
 
-    $user = $post_data['user'];
-    if ($post_data['date'] == 'today') {
-        //$query = "SELECT * FROM {$tblContainerDevan} WHERE `revan_state` = 'scheduled' ORDER BY `date` ASC LIMIT 1";
-        $query
-            = "SELECT * FROM {$tblContainerDevan} WHERE `date` >= '{$today}' AND `is_completed` = 0 AND `inbound_renban_air_freight_case_number`!='' ORDER BY `date` ASC LIMIT 1";
-    } else {
-        $date = convert_date_string($post_data['date']);
-        $query
-            = "SELECT * FROM {$tblContainerDevan} WHERE `date` >= '{$date}' AND `is_completed` = 0  AND `inbound_renban_air_freight_case_number`!='' ORDER BY `date` ASC LIMIT 1";
-    }
+//     $user = $post_data['user'];
+//     if ($post_data['date'] == 'today') {
+//         //$query = "SELECT * FROM {$tblContainerDevan} WHERE `revan_state` = 'scheduled' ORDER BY `date` ASC LIMIT 1";
+//         $query
+//             = "SELECT * FROM {$tblContainerDevan} WHERE `date` >= '{$today}' AND `is_completed` = 0 AND `inbound_renban_air_freight_case_number`!='' ORDER BY `date` ASC LIMIT 1";
+//     } else {
+//         $date = convert_date_string($post_data['date']);
+//         $query
+//             = "SELECT * FROM {$tblContainerDevan} WHERE `date` >= '{$date}' AND `is_completed` = 0  AND `inbound_renban_air_freight_case_number`!='' ORDER BY `date` ASC LIMIT 1";
+//     }
 
-    $result = $db->query($query);
-    if (mysqli_num_rows($result) > 0) {
-        $devan = mysqli_fetch_array($result);
-        //var_dump($devan);exit();
-        //Update Renban No
-        $renban_no = get_setting('renban_no_prefix');
-        //$renban_no = update_renban_no($devan['id']);
+//     $result = $db->query($query);
+//     if (mysqli_num_rows($result) > 0) {
+//         $devan = mysqli_fetch_array($result);
+//         //var_dump($devan);exit();
+//         //Update Renban No
+//         $renban_no = get_setting('renban_no_prefix');
+//         //$renban_no = update_renban_no($devan['id']);
 
 
-        if (get_help_alarm_for_overview('Container Devan')) {
-            echo '<div class="row m-0 p-0" style="background-color: red; color: #FFF;">';
-        } else {
-            echo '<div class="row m-0 p-0" style="border-radius: 15px; background-color: #1797FF; color: #FFF;">';
-        }
-        echo '<div>';
-        if ($devan['shift'] == 'D') {
-            $shift = 'Days';
-        } else {
-            $shift = 'Night';
-        }
+//         if (get_help_alarm_for_overview('Container Devan')) {
+//             echo '<div class="row m-0 p-0" style="background-color: red; color: #FFF;">';
+//         } else {
+//             echo '<div class="row m-0 p-0" style="border-radius: 15px; background-color: #1797FF; color: #FFF;">';
+//         }
+//         echo '<div>';
+//         if ($devan['shift'] == 'D') {
+//             $shift = 'Days';
+//         } else {
+//             $shift = 'Night';
+//         }
 
-        //if north america member plan, we show it at the top
-        $devan_plan = $devan['inbound_renban_air_freight_case_number'];
-        $devan_plan_flag = false;
-        $complete_btn_disabled = "disabled";
-        if (
-            strpos(strtolower($devan_plan), "devan") !== false
-            || strpos(strtolower($devan_plan), "america") !== false
-        ) {
-            $devan_plan_flag = true;
-        }
+//         //if north america member plan, we show it at the top
+//         $devan_plan = $devan['inbound_renban_air_freight_case_number'];
+//         $devan_plan_flag = false;
+//         $complete_btn_disabled = "disabled";
+//         if (
+//             strpos(strtolower($devan_plan), "devan") !== false
+//             || strpos(strtolower($devan_plan), "america") !== false
+//         ) {
+//             $devan_plan_flag = true;
+//         }
 
-        //if north america member plan
-        if ($devan_plan_flag) {
-            $devan_plan_value = rtrim(explode("-", $devan_plan)[0]);
-            echo '<h1 style="font-size: 38px;text-align: center;">'
-                . $devan_plan_value . '</h1>';
-            $complete_btn_disabled = "";
-        }
+//         //if north america member plan
+//         if ($devan_plan_flag) {
+//             $devan_plan_value = rtrim(explode("-", $devan_plan)[0]);
+//             echo '<h1 style="font-size: 38px;text-align: center;">'
+//                 . $devan_plan_value . '</h1>';
+//             $complete_btn_disabled = "";
+//         }
 
-        //Date, Shift and Time
-        echo '<div class="row mx-0">';
-        echo '<div class="col-md-8">';
-        echo '<h1 style="font-size: 32px;"><p style="color: black; text-transform: uppercase; font-weight:bold; margin-bottom:auto">Current Devan: </p>'
-            . '<span style="margin-right: 20px; text-transform: uppercase;font-weight:bold">'
-            . date('d/m/Y', strtotime($devan['date']))
-            . '</span><span style="margin-right: 20px; text-transform: uppercase;font-weight:bold">'
-            . $shift . '</span><span style="font-weight:bold">' . $devan['time']
-            . '</span></h1>';
-        echo '</div>';
-        echo '<div class="col-md-4">';
-        echo '<h1 style="font-size: 32px;"><p style="color: black; text-transform: uppercase; font-weight:bold; margin-bottom:auto">Member: </p>'
-            . '<span style="margin-right: 0px; text-transform: uppercase;">'
-            . $user . '</span></h1>';
-        echo '</div>';
-        echo '</div>';
-        //Container Renban
-        //if north america member dose not need to confirm container number to press finish
-        // if (!strpos(strtolower($devan_plan), "devan") && !strpos(strtolower($devan_plan), "america")) {
-        //     echo '<label style="font-size: 48px; font-weight: normal">Container Renban:</label>';
-        //     echo '<input type="text" id="container_renban" name="container_renban" class="form-control" style="width: 420px; display: inline-block; height: 60px; font-size: 48px;">';
-        //     echo '<button class="btn btn-primary" data-revan="' . $devan['revan_state'] . '" id="btn_chk_container_renban" style="height: 60px; margin-left: 20px; width: 160px; margin-top: -20px; font-size: 32px;" value="' . $devan['on_dock_inbound_renban'] . '">CHECK</button>';
-        // }
+//         //Date, Shift and Time
+//         echo '<div class="row mx-0">';
+//         echo '<div class="col-md-8">';
+//         echo '<h1 style="font-size: 32px;"><p style="color: black; text-transform: uppercase; font-weight:bold; margin-bottom:auto">Current Devan: </p>'
+//             . '<span style="margin-right: 20px; text-transform: uppercase;font-weight:bold">'
+//             . date('d/m/Y', strtotime($devan['date']))
+//             . '</span><span style="margin-right: 20px; text-transform: uppercase;font-weight:bold">'
+//             . $shift . '</span><span style="font-weight:bold">' . $devan['time']
+//             . '</span></h1>';
+//         echo '</div>';
+//         echo '<div class="col-md-4">';
+//         echo '<h1 style="font-size: 32px;"><p style="color: black; text-transform: uppercase; font-weight:bold; margin-bottom:auto">Member: </p>'
+//             . '<span style="margin-right: 0px; text-transform: uppercase;">'
+//             . $user . '</span></h1>';
+//         echo '</div>';
+//         echo '</div>';
+//         //Container Renban
+//         //if north america member dose not need to confirm container number to press finish
+//         // if (!strpos(strtolower($devan_plan), "devan") && !strpos(strtolower($devan_plan), "america")) {
+//         //     echo '<label style="font-size: 48px; font-weight: normal">Container Renban:</label>';
+//         //     echo '<input type="text" id="container_renban" name="container_renban" class="form-control" style="width: 420px; display: inline-block; height: 60px; font-size: 48px;">';
+//         //     echo '<button class="btn btn-primary" data-revan="' . $devan['revan_state'] . '" id="btn_chk_container_renban" style="height: 60px; margin-left: 20px; width: 160px; margin-top: -20px; font-size: 32px;" value="' . $devan['on_dock_inbound_renban'] . '">CHECK</button>';
+//         // }
 
-        //Container No
-        echo '<div class="row mt-4 mx-0">';
-        echo '<div class="col-md-8">';
-        echo '<h1 style="font-size: 32px;"><p style="color: black; text-transform: uppercase; font-weight:bold; margin-bottom:auto">Container No: </p><span style="color: white; font-size: 48px; font-weight:bold">'
-            . $devan['on_doc_container_number'] . '</span></h1>';
-        echo '</div>';
-        $revan_state = $devan['revan_state'] == "scheduled" ? "Yes" : "No";
-        echo '<div class="col-md-4">';
-        echo '<h1 style="font-size: 32px;"><p style="color: black; text-transform: uppercase; font-weight:bold; margin-bottom:auto">Revan: </p>'
-            . '<span style="margin-right: 20px; text-transform: uppercase; font-size: 48px;font-weight:bold">'
-            . $revan_state . '</span></h1>';
-        echo '</div>';
-        echo '</div>';
+//         //Container No
+//         echo '<div class="row mt-4 mx-0">';
+//         echo '<div class="col-md-8">';
+//         echo '<h1 style="font-size: 32px;"><p style="color: black; text-transform: uppercase; font-weight:bold; margin-bottom:auto">Container No: </p><span style="color: white; font-size: 48px; font-weight:bold">'
+//             . $devan['on_doc_container_number'] . '</span></h1>';
+//         echo '</div>';
+//         $revan_state = $devan['revan_state'] == "scheduled" ? "Yes" : "No";
+//         echo '<div class="col-md-4">';
+//         echo '<h1 style="font-size: 32px;"><p style="color: black; text-transform: uppercase; font-weight:bold; margin-bottom:auto">Revan: </p>'
+//             . '<span style="margin-right: 20px; text-transform: uppercase; font-size: 48px;font-weight:bold">'
+//             . $revan_state . '</span></h1>';
+//         echo '</div>';
+//         echo '</div>';
 
-        // echo '<h1 style="font-size: 38px;"><p style="color: black">Container No: </p><span style="color: white;">' . $devan['on_doc_container_number'] . '</span></h1>';
+//         // echo '<h1 style="font-size: 38px;"><p style="color: black">Container No: </p><span style="color: white;">' . $devan['on_doc_container_number'] . '</span></h1>';
 
-        //Reban
-        // echo '<h1 style="font-size: 48px;">';
-        // echo 'Renban No: <span id="renban_no">' . $renban_no . '</span>';
-        // echo '</h1>';
+//         //Reban
+//         // echo '<h1 style="font-size: 48px;">';
+//         // echo 'Renban No: <span id="renban_no">' . $renban_no . '</span>';
+//         // echo '</h1>';
 
-        //Reban
-        // echo '<div style="width: 100%; text-align: center;" >';
-        // echo '<button class="btn btn-success" id="btn_complete" style="width: 240px; font-size:36px; margin:0;" ' . $complete_btn_disabled . ' value="' . $devan['id'] . '" data-renban="check">Complete</button>';
-        // echo '</div>';
-        // echo '</div>';
-        // echo '<div class="col-md-3" style="display: flex; align-items: center;">';
-        // echo '<button class="btn bg-yellow devan-help" style="font-size: 36px; border-radius: 100px; width: 200px; height: 200px;">Help <br/>Andon</button>';
-        // echo '</div>';
-        // echo '</div>';
-    } else {
-        echo '<p style="text-align: center; padding: 30px; font-size: 30px;">There is no scheduled job yet</p>';
-    }
-}
+//         //Reban
+//         // echo '<div style="width: 100%; text-align: center;" >';
+//         // echo '<button class="btn btn-success" id="btn_complete" style="width: 240px; font-size:36px; margin:0;" ' . $complete_btn_disabled . ' value="' . $devan['id'] . '" data-renban="check">Complete</button>';
+//         // echo '</div>';
+//         // echo '</div>';
+//         // echo '<div class="col-md-3" style="display: flex; align-items: center;">';
+//         // echo '<button class="btn bg-yellow devan-help" style="font-size: 36px; border-radius: 100px; width: 200px; height: 200px;">Help <br/>Andon</button>';
+//         // echo '</div>';
+//         // echo '</div>';
+//     } else {
+//         echo '<p style="text-align: center; padding: 30px; font-size: 30px;">There is no scheduled job yet</p>';
+//     }
+// }
 
 
 function get_live_deban_overview1($post_data)
@@ -1740,8 +1740,12 @@ function get_live_deban_overview1($post_data)
         while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
             $ress[] = $row;
         }
-        if(count($ress) == 0) return;
-        $devan = $ress[0];
+        $res = [];
+        if(count($ress) == 0) $res = [];
+        else{
+            $res = $ress[0];
+        }
+        $devan = $res;
         $renban_no = get_setting('renban_no_prefix');
         //$renban_no = update_renban_no($devan['id']);
 
@@ -1844,134 +1848,134 @@ function get_live_deban_overview1($post_data)
 }
 
 
-function get_live_deban_team_leader($post_data)
-{
-    global $db, $tblContainerDevan, $today;
+// function get_live_deban_team_leader($post_data)
+// {
+//     global $db, $tblContainerDevan, $today;
 
-    // $user = $post_data['user'];
-    $user = '';
-    // $sessions = get_all_sessions();
-    // $user = $_SESSION['current_user_name'];
-    if ($post_data['date'] == 'today') {
-        //$query = "SELECT * FROM {$tblContainerDevan} WHERE `revan_state` = 'scheduled' ORDER BY `date` ASC LIMIT 1";
-        $query
-            = "SELECT * FROM {$tblContainerDevan} WHERE `date` >= '{$today}' AND `is_completed` = 0 AND `inbound_renban_air_freight_case_number`!='' ORDER BY `date` ASC LIMIT 1";
-    } else {
-        $date = convert_date_string($post_data['date']);
-        $query
-            = "SELECT * FROM {$tblContainerDevan} WHERE `date` >= '{$date}' AND `is_completed` = 0  AND `inbound_renban_air_freight_case_number`!='' ORDER BY `date` ASC LIMIT 1";
-    }
+//     // $user = $post_data['user'];
+//     $user = '';
+//     // $sessions = get_all_sessions();
+//     // $user = $_SESSION['current_user_name'];
+//     if ($post_data['date'] == 'today') {
+//         //$query = "SELECT * FROM {$tblContainerDevan} WHERE `revan_state` = 'scheduled' ORDER BY `date` ASC LIMIT 1";
+//         $query
+//             = "SELECT * FROM {$tblContainerDevan} WHERE `date` >= '{$today}' AND `is_completed` = 0 AND `inbound_renban_air_freight_case_number`!='' ORDER BY `date` ASC LIMIT 1";
+//     } else {
+//         $date = convert_date_string($post_data['date']);
+//         $query
+//             = "SELECT * FROM {$tblContainerDevan} WHERE `date` >= '{$date}' AND `is_completed` = 0  AND `inbound_renban_air_freight_case_number`!='' ORDER BY `date` ASC LIMIT 1";
+//     }
 
-    $result = $db->query($query);
-    if (mysqli_num_rows($result) > 0) {
-        $devan = mysqli_fetch_array($result);
-        //var_dump($devan);exit();
-        //Update Renban No
-        $renban_no = get_setting('renban_no_prefix');
-        //$renban_no = update_renban_no($devan['id']);
+//     $result = $db->query($query);
+//     if (mysqli_num_rows($result) > 0) {
+//         $devan = mysqli_fetch_array($result);
+//         //var_dump($devan);exit();
+//         //Update Renban No
+//         $renban_no = get_setting('renban_no_prefix');
+//         //$renban_no = update_renban_no($devan['id']);
 
 
-        if (get_help_alarm_for_overview('Container Devan')) {
-            echo '<div class="row m-0 p-0" style="background-color: red; color: #FFF;">';
-        } else {
-            echo '<div class="row m-0 p-0" style="border-radius: 15px; background-color: #1797FF; color: #FFF;">';
-        }
-        echo '<div>';
-        if ($devan['shift'] == 'D') {
-            $shift = 'Days';
-        } else {
-            $shift = 'Night';
-        }
+//         if (get_help_alarm_for_overview('Container Devan')) {
+//             echo '<div class="row m-0 p-0" style="background-color: red; color: #FFF;">';
+//         } else {
+//             echo '<div class="row m-0 p-0" style="border-radius: 15px; background-color: #1797FF; color: #FFF;">';
+//         }
+//         echo '<div>';
+//         if ($devan['shift'] == 'D') {
+//             $shift = 'Days';
+//         } else {
+//             $shift = 'Night';
+//         }
 
-        //if north america member plan, we show it at the top
-        $devan_plan = $devan['inbound_renban_air_freight_case_number'];
-        $devan_plan_flag = false;
-        $complete_btn_disabled = "disabled";
-        if (
-            strpos(strtolower($devan_plan), "devan") !== false
-            || strpos(strtolower($devan_plan), "america") !== false
-        ) {
-            $devan_plan_flag = true;
-        }
+//         //if north america member plan, we show it at the top
+//         $devan_plan = $devan['inbound_renban_air_freight_case_number'];
+//         $devan_plan_flag = false;
+//         $complete_btn_disabled = "disabled";
+//         if (
+//             strpos(strtolower($devan_plan), "devan") !== false
+//             || strpos(strtolower($devan_plan), "america") !== false
+//         ) {
+//             $devan_plan_flag = true;
+//         }
 
-        //if north america member plan
-        if ($devan_plan_flag) {
-            $devan_plan_value = rtrim(explode("-", $devan_plan)[0]);
-            echo '<h1 style="font-size: 38px;text-align: center;">'
-                . $devan_plan_value . '</h1>';
-            $complete_btn_disabled = "";
-        }
+//         //if north america member plan
+//         if ($devan_plan_flag) {
+//             $devan_plan_value = rtrim(explode("-", $devan_plan)[0]);
+//             echo '<h1 style="font-size: 38px;text-align: center;">'
+//                 . $devan_plan_value . '</h1>';
+//             $complete_btn_disabled = "";
+//         }
 
-        //Date, Shift and Time
-        echo '<div class="row mx-0">';
-        echo '<div class="col-md-8">';
-        echo '<h1 style="font-size: 18px;"><p style="color: black; text-transform: uppercase; font-weight:bold; margin-bottom:auto">Current Devan: </p>'
-            . '<span style="margin-right: 0px; text-transform: uppercase;font-weight:bold">'
-            . date('d/m/Y', strtotime($devan['date']))
-            . '</span><span style="margin-right: 20px; text-transform: uppercase;font-weight:bold">'
-            . $shift . '</span><span style="font-weight:bold">' . $devan['time']
-            . '</span></h1>';
-        echo '</div>';
-        echo '<div class="col-md-4" style="margin-left: 0px;">';
-        echo '<h1 style="font-size: 18px;"><p style="color: black; text-transform: uppercase; font-weight:bold; margin-bottom:auto;">Member: </p>'
-            . '<span id="member_name" style="margin-right: 0px; text-transform: uppercase;">'
-            . $user . '</span></h1>';
-        echo '</div>';
-        echo '</div>';
-        //Container Renban
-        //if north america member dose not need to confirm container number to press finish
-        // if (!strpos(strtolower($devan_plan), "devan") && !strpos(strtolower($devan_plan), "america")) {
-        //     echo '<label style="font-size: 48px; font-weight: normal">Container Renban:</label>';
-        //     echo '<input type="text" id="container_renban" name="container_renban" class="form-control" style="width: 420px; display: inline-block; height: 60px; font-size: 48px;">';
-        //     echo '<button class="btn btn-primary" data-revan="' . $devan['revan_state'] . '" id="btn_chk_container_renban" style="height: 60px; margin-left: 20px; width: 160px; margin-top: -20px; font-size: 32px;" value="' . $devan['on_dock_inbound_renban'] . '">CHECK</button>';
-        // }
+//         //Date, Shift and Time
+//         echo '<div class="row mx-0">';
+//         echo '<div class="col-md-8">';
+//         echo '<h1 style="font-size: 18px;"><p style="color: black; text-transform: uppercase; font-weight:bold; margin-bottom:auto">Current Devan: </p>'
+//             . '<span style="margin-right: 0px; text-transform: uppercase;font-weight:bold">'
+//             . date('d/m/Y', strtotime($devan['date']))
+//             . '</span><span style="margin-right: 20px; text-transform: uppercase;font-weight:bold">'
+//             . $shift . '</span><span style="font-weight:bold">' . $devan['time']
+//             . '</span></h1>';
+//         echo '</div>';
+//         echo '<div class="col-md-4" style="margin-left: 0px;">';
+//         echo '<h1 style="font-size: 18px;"><p style="color: black; text-transform: uppercase; font-weight:bold; margin-bottom:auto;">Member: </p>'
+//             . '<span id="member_name" style="margin-right: 0px; text-transform: uppercase;">'
+//             . $user . '</span></h1>';
+//         echo '</div>';
+//         echo '</div>';
+//         //Container Renban
+//         //if north america member dose not need to confirm container number to press finish
+//         // if (!strpos(strtolower($devan_plan), "devan") && !strpos(strtolower($devan_plan), "america")) {
+//         //     echo '<label style="font-size: 48px; font-weight: normal">Container Renban:</label>';
+//         //     echo '<input type="text" id="container_renban" name="container_renban" class="form-control" style="width: 420px; display: inline-block; height: 60px; font-size: 48px;">';
+//         //     echo '<button class="btn btn-primary" data-revan="' . $devan['revan_state'] . '" id="btn_chk_container_renban" style="height: 60px; margin-left: 20px; width: 160px; margin-top: -20px; font-size: 32px;" value="' . $devan['on_dock_inbound_renban'] . '">CHECK</button>';
+//         // }
 
-        //Container No
-        echo '<div class="row mt-4 mx-0">';
-        echo '<div class="col-md-8">';
-        echo '<h1 style="font-size: 18px;"><p style="color: black; text-transform: uppercase; font-weight:bold; margin-bottom:auto">Container No: </p><span style="color: white; font-size: 28px; font-weight:bold">'
-            . $devan['on_doc_container_number'] . '</span></h1>';
-        echo '</div>';
-        $revan_state = $devan['revan_state'] == "scheduled" ? "Yes" : "No";
-        echo '<div class="col-md-4">';
-        echo '<h1 style="font-size: 18px;"><p style="color: black; text-transform: uppercase; font-weight:bold; margin-bottom:auto">Revan: </p>'
-            . '<span style="margin-left: 20px; text-transform: uppercase; font-size: 28px;font-weight:bold">'
-            . $revan_state . '</span></h1>';
-        echo '</div>';
-        echo '</div>';
+//         //Container No
+//         echo '<div class="row mt-4 mx-0">';
+//         echo '<div class="col-md-8">';
+//         echo '<h1 style="font-size: 18px;"><p style="color: black; text-transform: uppercase; font-weight:bold; margin-bottom:auto">Container No: </p><span style="color: white; font-size: 28px; font-weight:bold">'
+//             . $devan['on_doc_container_number'] . '</span></h1>';
+//         echo '</div>';
+//         $revan_state = $devan['revan_state'] == "scheduled" ? "Yes" : "No";
+//         echo '<div class="col-md-4">';
+//         echo '<h1 style="font-size: 18px;"><p style="color: black; text-transform: uppercase; font-weight:bold; margin-bottom:auto">Revan: </p>'
+//             . '<span style="margin-left: 20px; text-transform: uppercase; font-size: 28px;font-weight:bold">'
+//             . $revan_state . '</span></h1>';
+//         echo '</div>';
+//         echo '</div>';
 
-        // echo '<h1 style="font-size: 38px;"><p style="color: black">Container No: </p><span style="color: white;">' . $devan['on_doc_container_number'] . '</span></h1>';
+//         // echo '<h1 style="font-size: 38px;"><p style="color: black">Container No: </p><span style="color: white;">' . $devan['on_doc_container_number'] . '</span></h1>';
 
-        //Reban
-        // echo '<h1 style="font-size: 48px;">';
-        // echo 'Renban No: <span id="renban_no">' . $renban_no . '</span>';
-        // echo '</h1>';
+//         //Reban
+//         // echo '<h1 style="font-size: 48px;">';
+//         // echo 'Renban No: <span id="renban_no">' . $renban_no . '</span>';
+//         // echo '</h1>';
 
-        //Reban
-        // echo '<div style="width: 100%; text-align: center;" >';
-        // echo '<button class="btn btn-success" id="btn_complete" style="width: 240px; font-size:36px; margin:0;" ' . $complete_btn_disabled . ' value="' . $devan['id'] . '" data-renban="check">Complete</button>';
-        // echo '</div>';
-        // echo '</div>';
-        // echo '<div class="col-md-3" style="display: flex; align-items: center;">';
-        // echo '<button class="btn bg-yellow devan-help" style="font-size: 36px; border-radius: 100px; width: 200px; height: 200px;">Help <br/>Andon</button>';
-        // echo '</div>';
-        // echo '</div>';
-    } else {
-        echo '<p style="text-align: center; padding: 30px; font-size: 30px;">There is no scheduled job yet</p>';
-    }
-}
+//         //Reban
+//         // echo '<div style="width: 100%; text-align: center;" >';
+//         // echo '<button class="btn btn-success" id="btn_complete" style="width: 240px; font-size:36px; margin:0;" ' . $complete_btn_disabled . ' value="' . $devan['id'] . '" data-renban="check">Complete</button>';
+//         // echo '</div>';
+//         // echo '</div>';
+//         // echo '<div class="col-md-3" style="display: flex; align-items: center;">';
+//         // echo '<button class="btn bg-yellow devan-help" style="font-size: 36px; border-radius: 100px; width: 200px; height: 200px;">Help <br/>Andon</button>';
+//         // echo '</div>';
+//         // echo '</div>';
+//     } else {
+//         echo '<p style="text-align: center; padding: 30px; font-size: 30px;">There is no scheduled job yet</p>';
+//     }
+// }
 
 function update_renban_no($devan_id)
 {
-    global $db, $tblContainerDevan;
+    global $dbMssql, $tblContainerDevan;
     $pre_fix = get_setting('renban_no_prefix');
     //$query = "SELECT * FROM {$tblContainerDevan} WHERE id < '{$devan_id}' AND is_completed = 1 ORDER BY `departure_inbound_renban` DESC LIMIT 1";
     $query
-        = "SELECT * FROM {$tblContainerDevan} WHERE is_completed = 1 ORDER BY `departure_inbound_renban` DESC LIMIT 1";
-    $result = $db->query($query);
-    if (mysqli_num_rows($result) > 0) {
-        $devan = mysqli_fetch_array($result);
-        $old_inbound_renban = $devan['departure_inbound_renban'];
+        = "SELECT TOP 1 * FROM {$tblContainerDevan} WHERE is_completed = 1 ORDER BY departure_inbound_renban DESC";
+    $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+    if (sqlsrv_num_rows($result) > 0) {
+        $devan = sqlsrv_fetch_object($result);
+        $old_inbound_renban = $devan->departure_inbound_renban;
         $new_reban_no = (int) $old_inbound_renban + 1;
         if ($new_reban_no < 10) {
             $renban_no = $pre_fix . '0000' . $new_reban_no;
@@ -1991,13 +1995,13 @@ function update_renban_no($devan_id)
             }
         }
         $update_query
-            = "UPDATE {$tblContainerDevan} SET `departure_inbound_renban` = '{$new_reban_no}' WHERE id = {$devan_id}";
+            = "UPDATE {$tblContainerDevan} SET departure_inbound_renban = '{$new_reban_no}' WHERE id = {$devan_id}";
     } else {
         $update_query
-            = "UPDATE {$tblContainerDevan} SET `departure_inbound_renban` = '1' WHERE id = {$devan_id}";
+            = "UPDATE {$tblContainerDevan} SET departure_inbound_renban = '1' WHERE id = {$devan_id}";
         $renban_no = $pre_fix . '00001';
     }
-    $result = $db->query($update_query);
+    $result = sqlsrv_query($dbMssql, $update_query);
     return $renban_no;
 }
 
@@ -3526,10 +3530,10 @@ function read_kanban_box($post_data)
 
 function get_opr_setting($type)
 {
-    global $tblOPRSetting, $db;
+    global $tblOPRSetting, $dbMssql;
     $query = "SELECT * FROM {$tblOPRSetting} WHERE opr_type = '{$type}'";
-    $result = $db->query($query);
-    $k = mysqli_fetch_object($result);
+    $result = sqlsrv_query($dbMssql, $query);
+    $k = sqlsrv_fetch_object($result);
     if ($k) {
         return $k->value;
     } else {
@@ -3539,10 +3543,10 @@ function get_opr_setting($type)
 
 function get_part_number_by_kanban($kanban)
 {
-    global $tblPart2Kanban, $db;
+    global $tblPart2Kanban, $dbMssql;
     $query = "SELECT * FROM {$tblPart2Kanban} WHERE kanban = '{$kanban}'";
-    $result = $db->query($query);
-    $k = mysqli_fetch_object($result);
+    $result = sqlsrv_query($dbMssql, $query);
+    $k = sqlsrv_fetch_object($result);
     if ($k) {
         return $k->part_number;
     } else {
@@ -4073,231 +4077,231 @@ function confirm_conveyance_andon_help($post_data)
     }
 }
 
-function read_delivery_kanban_boxes($post_data)
-{
-    global $db, $tblConveyancePicks;
-    $kanban_id = $post_data['kanban_id'];
-    $direction = $post_data['direction'];
+// function read_delivery_kanban_boxes($post_data)
+// {
+//     global $db, $tblConveyancePicks;
+//     $kanban_id = $post_data['kanban_id'];
+//     $direction = $post_data['direction'];
 
-    if ($direction == 'prev') {
-        if (empty($kanban_id)) {
-            $query
-                = "SELECT * FROM {$tblConveyancePicks} WHERE is_completed =1 ORDER BY `imported_at` ASC LIMIT 3";
-        } else {
-            $max = $kanban_id + 1;
-            $min = $kanban_id - 2;
-            if ($min < 0) {
-                $min = 0;
-            }
-            $query
-                = "SELECT * FROM {$tblConveyancePicks} WHERE is_completed = 1 AND id <= {$max} AND id > {$min} ORDER BY `imported_at` ASC LIMIT 3";
-        }
-    } else {
-        if (empty($kanban_id)) {
-            $query
-                = "SELECT * FROM {$tblConveyancePicks} WHERE is_completed = 1 ORDER BY `imported_at` ASC LIMIT 3";
-        } else {
-            $max = $kanban_id + 1;
-            $min = $kanban_id - 2;
-            $query
-                = "SELECT * FROM {$tblConveyancePicks} WHERE is_completed = 1 AND id <= {$max} AND id > {$min} ORDER BY `imported_at` ASC LIMIT 3";
-        }
-    }
-    $result = $db->query($query);
-    $num_rows = mysqli_num_rows($result);
-    if ($num_rows == 0) {
-        for ($i = 1; $i <= 3; $i++) {
-            make_d_kanban_box($i);
-        }
-    } else {
-        $rows = [];
-        if (empty($kanban_id)) {
-            array_push($rows, null);
-        }
-        while ($row = mysqli_fetch_array($result)) {
-            array_push(
-                $rows,
-                [
-                    'id' => $row['id'],
-                    'kanban' => $row['kanban'],
-                    'location' => $row['location'],
-                    'is_delivered' => $row['is_delivered'],
-                    'is_help' => $row['is_help'],
-                ]
-            );
-        }
-        if (empty($kanban_id) && count($rows) > 3) {
-            unset($rows[count($rows) - 1]);
-        }
+//     if ($direction == 'prev') {
+//         if (empty($kanban_id)) {
+//             $query
+//                 = "SELECT * FROM {$tblConveyancePicks} WHERE is_completed =1 ORDER BY `imported_at` ASC LIMIT 3";
+//         } else {
+//             $max = $kanban_id + 1;
+//             $min = $kanban_id - 2;
+//             if ($min < 0) {
+//                 $min = 0;
+//             }
+//             $query
+//                 = "SELECT * FROM {$tblConveyancePicks} WHERE is_completed = 1 AND id <= {$max} AND id > {$min} ORDER BY `imported_at` ASC LIMIT 3";
+//         }
+//     } else {
+//         if (empty($kanban_id)) {
+//             $query
+//                 = "SELECT * FROM {$tblConveyancePicks} WHERE is_completed = 1 ORDER BY `imported_at` ASC LIMIT 3";
+//         } else {
+//             $max = $kanban_id + 1;
+//             $min = $kanban_id - 2;
+//             $query
+//                 = "SELECT * FROM {$tblConveyancePicks} WHERE is_completed = 1 AND id <= {$max} AND id > {$min} ORDER BY `imported_at` ASC LIMIT 3";
+//         }
+//     }
+//     $result = $db->query($query);
+//     $num_rows = mysqli_num_rows($result);
+//     if ($num_rows == 0) {
+//         for ($i = 1; $i <= 3; $i++) {
+//             make_d_kanban_box($i);
+//         }
+//     } else {
+//         $rows = [];
+//         if (empty($kanban_id)) {
+//             array_push($rows, null);
+//         }
+//         while ($row = mysqli_fetch_array($result)) {
+//             array_push(
+//                 $rows,
+//                 [
+//                     'id' => $row['id'],
+//                     'kanban' => $row['kanban'],
+//                     'location' => $row['location'],
+//                     'is_delivered' => $row['is_delivered'],
+//                     'is_help' => $row['is_help'],
+//                 ]
+//             );
+//         }
+//         if (empty($kanban_id) && count($rows) > 3) {
+//             unset($rows[count($rows) - 1]);
+//         }
 
-        if ($direction == 'prev') {
-            if (count($rows) == 2) {
-                array_unshift($rows, null);
-            }
-            if (count($rows) == 1) {
-                array_unshift($rows, null);
-                array_unshift($rows, null);
-            }
-        } else {
-            if (count($rows) == 2) {
-                array_push($rows, null);
-            }
+//         if ($direction == 'prev') {
+//             if (count($rows) == 2) {
+//                 array_unshift($rows, null);
+//             }
+//             if (count($rows) == 1) {
+//                 array_unshift($rows, null);
+//                 array_unshift($rows, null);
+//             }
+//         } else {
+//             if (count($rows) == 2) {
+//                 array_push($rows, null);
+//             }
 
-            if (count($rows) == 1) {
-                array_push($rows, null);
-                array_push($rows, null);
-            }
-        }
-        foreach ($rows as $index => $row) {
-            $i = $index + 1;
-            make_d_kanban_box($i, $row);
-        }
-    }
-}
+//             if (count($rows) == 1) {
+//                 array_push($rows, null);
+//                 array_push($rows, null);
+//             }
+//         }
+//         foreach ($rows as $index => $row) {
+//             $i = $index + 1;
+//             make_d_kanban_box($i, $row);
+//         }
+//     }
+// }
 
-function make_d_kanban_box($index, $row = null)
-{
-    global $tblConveyancePicks, $db, $today;
-    if ($row == null) {
-        $kanban = '';
-        $location = '';
-        $kanban_id = '';
-        $is_delivered = 0;
-        $is_help = 0;
-    } else {
-        $kanban = $row['kanban'];
-        $location = $row['location'];
-        $kanban_id = $row['id'];
-        $is_delivered = $row['is_delivered'];
-        $is_help = $row['is_help'];
-    }
+// function make_d_kanban_box($index, $row = null)
+// {
+//     global $tblConveyancePicks, $db, $today;
+//     if ($row == null) {
+//         $kanban = '';
+//         $location = '';
+//         $kanban_id = '';
+//         $is_delivered = 0;
+//         $is_help = 0;
+//     } else {
+//         $kanban = $row['kanban'];
+//         $location = $row['location'];
+//         $kanban_id = $row['id'];
+//         $is_delivered = $row['is_delivered'];
+//         $is_help = $row['is_help'];
+//     }
 
-    if ($index == 2) {
-        $bg_class = 'blue-kanban';
-    } else {
-        $bg_class = 'grey-kanban';
-    }
+//     if ($index == 2) {
+//         $bg_class = 'blue-kanban';
+//     } else {
+//         $bg_class = 'grey-kanban';
+//     }
 
-    if ($is_delivered == 1) {
-        $bg_class = 'green-kanban';
-    }
-    if ($is_help == 1) {
-        $bg_class = 'red-kanban';
-    }
+//     if ($is_delivered == 1) {
+//         $bg_class = 'green-kanban';
+//     }
+//     if ($is_help == 1) {
+//         $bg_class = 'red-kanban';
+//     }
 
-    if ($index == 1) {
-        echo '<div class="col-md-3 m-0 p-0">';
-        echo '<div class="d-flex flex-column align-items-center kanban '
-            . $bg_class . '">';
+//     if ($index == 1) {
+//         echo '<div class="col-md-3 m-0 p-0">';
+//         echo '<div class="d-flex flex-column align-items-center kanban '
+//             . $bg_class . '">';
 
-        echo '<div class="item-div">';
-        echo '<span>Prev.</span>';
-        echo '</div>';
+//         echo '<div class="item-div">';
+//         echo '<span>Prev.</span>';
+//         echo '</div>';
 
-        echo '<div class="item-div" id="input_div">';
-        echo '<input type="text" class="form-control kanban_input" id="kanban_input" name="kanban_input" autofocus placeholder="Kanban">';
-        echo '<input type="hidden" id="input_type" name="input_type" value="kanban">';
-        echo '</div>';
+//         echo '<div class="item-div" id="input_div">';
+//         echo '<input type="text" class="form-control kanban_input" id="kanban_input" name="kanban_input" autofocus placeholder="Kanban">';
+//         echo '<input type="hidden" id="input_type" name="input_type" value="kanban">';
+//         echo '</div>';
 
-        echo '<div class="item-div">';
-        echo '<h2>Kanban</h2>';
-        echo '<h1>' . $kanban . '</h1>';
-        echo '</div>';
+//         echo '<div class="item-div">';
+//         echo '<h2>Kanban</h2>';
+//         echo '<h1>' . $kanban . '</h1>';
+//         echo '</div>';
 
-        echo '<div class="item-div">';
-        echo '<a style="cursor: pointer;" id="go_prev_kanban"><img src="assets/img/prev.png" style="width: 15%; height: auto;"></a>';
-        echo '</div>';
+//         echo '<div class="item-div">';
+//         echo '<a style="cursor: pointer;" id="go_prev_kanban"><img src="assets/img/prev.png" style="width: 15%; height: auto;"></a>';
+//         echo '</div>';
 
-        echo '<div class="item-div">';
-        echo '<h2>Location</h2>';
-        echo '<h1>' . $location . '</h1>';
-        echo '</div>';
+//         echo '<div class="item-div">';
+//         echo '<h2>Location</h2>';
+//         echo '<h1>' . $location . '</h1>';
+//         echo '</div>';
 
-        echo '<input type="hidden" id="prev_id" value="' . $kanban_id . '">';
-        echo '</div>';
-        echo '</div>';
-    }
+//         echo '<input type="hidden" id="prev_id" value="' . $kanban_id . '">';
+//         echo '</div>';
+//         echo '</div>';
+//     }
 
-    if ($index == 2) {
-        //Get total unpicked kanban
-        $query = "SELECT * FROM {$tblConveyancePicks} WHERE is_completed = 1";
-        $result = $db->query($query);
-        $total_unpicked = mysqli_num_rows($result);
+//     if ($index == 2) {
+//         //Get total unpicked kanban
+//         $query = "SELECT * FROM {$tblConveyancePicks} WHERE is_completed = 1";
+//         $result = $db->query($query);
+//         $total_unpicked = mysqli_num_rows($result);
 
-        //Get picked kanban
-        $today_start = $today . " 00:00:00";
-        $query
-            = "SELECT * FROM {$tblConveyancePicks} WHERE is_delivered = 1 AND deliveried_at > '{$today_start}'";
-        $result = $db->query($query);
-        $total_picked = mysqli_num_rows($result);
+//         //Get picked kanban
+//         $today_start = $today . " 00:00:00";
+//         $query
+//             = "SELECT * FROM {$tblConveyancePicks} WHERE is_delivered = 1 AND deliveried_at > '{$today_start}'";
+//         $result = $db->query($query);
+//         $total_picked = mysqli_num_rows($result);
 
-        echo '<div class="col-md-6 m-0 p-0">';
-        echo '<div class="d-flex flex-column kanban ' . $bg_class
-            . '" id="current_kanban_area">';
+//         echo '<div class="col-md-6 m-0 p-0">';
+//         echo '<div class="d-flex flex-column kanban ' . $bg_class
+//             . '" id="current_kanban_area">';
 
-        echo '<div class="item-div">';
-        echo '<span>current</span>';
-        echo '</div>';
+//         echo '<div class="item-div">';
+//         echo '<span>current</span>';
+//         echo '</div>';
 
-        echo '<div class="item-div">';
-        echo '<span class="date-string m-2">' . date('d/m/Y', strtotime($today))
-            . '</span>';
-        echo '<span class="date-string m-2">Delivery List</span>';
-        echo '<span class="pick-list  m-2">' . $total_picked . '/' . $total_unpicked
-            . '</span>';
-        echo '</div>';
+//         echo '<div class="item-div">';
+//         echo '<span class="date-string m-2">' . date('d/m/Y', strtotime($today))
+//             . '</span>';
+//         echo '<span class="date-string m-2">Delivery List</span>';
+//         echo '<span class="pick-list  m-2">' . $total_picked . '/' . $total_unpicked
+//             . '</span>';
+//         echo '</div>';
 
-        echo '<div class="item-div">';
-        echo '<h2 style="color: #b8b7b7;">Kanban: </h2>';
-        echo '<h1>' . $kanban . '</h1>';
-        echo '</div>';
+//         echo '<div class="item-div">';
+//         echo '<h2 style="color: #b8b7b7;">Kanban: </h2>';
+//         echo '<h1>' . $kanban . '</h1>';
+//         echo '</div>';
 
-        echo '<div class="item-div">';
-        echo '<h2 style="color: #b8b7b7;">Address: </h2>';
-        echo '<h1>' . $location . '</h1>';
-        echo '</div>';
-        echo '<input type="hidden" id="current_kanban_no" value="' . $kanban . '">';
-        echo '<input type="hidden" id="current_kanban_location" value="'
-            . $location . '">';
-        echo '<input type="hidden" id="current_kanban_id" value="' . $kanban_id
-            . '">';
-        if ($is_help == 1) {
-            echo '<input type="hidden" id="chk_is_help" value="1">';
-        } else {
-            echo '<input type="hidden" id="chk_is_help" value="0">';
-        }
-        echo '</div>';
-        echo '</div>';
-    }
+//         echo '<div class="item-div">';
+//         echo '<h2 style="color: #b8b7b7;">Address: </h2>';
+//         echo '<h1>' . $location . '</h1>';
+//         echo '</div>';
+//         echo '<input type="hidden" id="current_kanban_no" value="' . $kanban . '">';
+//         echo '<input type="hidden" id="current_kanban_location" value="'
+//             . $location . '">';
+//         echo '<input type="hidden" id="current_kanban_id" value="' . $kanban_id
+//             . '">';
+//         if ($is_help == 1) {
+//             echo '<input type="hidden" id="chk_is_help" value="1">';
+//         } else {
+//             echo '<input type="hidden" id="chk_is_help" value="0">';
+//         }
+//         echo '</div>';
+//         echo '</div>';
+//     }
 
-    if ($index == 3) {
-        echo '<div class="col-md-3 m-0 p-0">';
-        echo '<div class="d-flex flex-column align-items-center kanban '
-            . $bg_class . '">';
+//     if ($index == 3) {
+//         echo '<div class="col-md-3 m-0 p-0">';
+//         echo '<div class="d-flex flex-column align-items-center kanban '
+//             . $bg_class . '">';
 
-        echo '<div class="item-div">';
-        echo '<span>Next</span>';
-        echo '</div>';
+//         echo '<div class="item-div">';
+//         echo '<span>Next</span>';
+//         echo '</div>';
 
-        echo '<div class="item-div">';
-        echo '<h2>Kanban</h2>';
-        echo '<h1>' . $kanban . '</h1>';
-        echo '</div>';
+//         echo '<div class="item-div">';
+//         echo '<h2>Kanban</h2>';
+//         echo '<h1>' . $kanban . '</h1>';
+//         echo '</div>';
 
-        echo '<div class="item-div">';
-        echo '<a style="cursor: pointer;" id="go_next_kanban"><img src="assets/img/next.png" style="width: 15%; height: auto;"></a>';
-        echo '</div>';
+//         echo '<div class="item-div">';
+//         echo '<a style="cursor: pointer;" id="go_next_kanban"><img src="assets/img/next.png" style="width: 15%; height: auto;"></a>';
+//         echo '</div>';
 
-        echo '<div class="item-div">';
-        echo '<h2>Address</h2>';
-        echo '<h1>' . $location . '</h1>';
-        echo '</div>';
+//         echo '<div class="item-div">';
+//         echo '<h2>Address</h2>';
+//         echo '<h1>' . $location . '</h1>';
+//         echo '</div>';
 
-        echo '<input type="hidden" id="next_id" value="' . $kanban_id . '">';
-        echo '</div>';
-        echo '</div>';
-    }
-}
+//         echo '<input type="hidden" id="next_id" value="' . $kanban_id . '">';
+//         echo '</div>';
+//         echo '</div>';
+//     }
+// }
 
 function conveyance_delivery($post_data)
 {
@@ -4327,11 +4331,11 @@ function conveyance_delivery($post_data)
  */
 function get_all_dolly()
 {
-    global $db, $tblDolly;
-    $query = "SELECT * FROM {$tblDolly} ORDER BY `name`";
-    $result = $db->query($query);
+    global $dbMssql, $tblDolly;
+    $query = "SELECT * FROM {$tblDolly} ORDER BY name";
+    $result = sqlsrv_query($dbMssql, $query);
     $dolly = [];
-    while ($item = mysqli_fetch_object($result)) {
+    while ($item = sqlsrv_fetch_object($result)) {
         array_push($dolly, $item);
     }
     return $dolly;
@@ -4339,10 +4343,10 @@ function get_all_dolly()
 
 function get_dolly_by_name($name)
 {
-    global $db, $tblPart2Kanban;
-    $query = "SELECT * FROM {$tblPart2Kanban} WHERE '{$name}' LIKE CONCAT('%', kanban, '%') LIMIT 1";
-    $result = $db->query($query);
-    $dolly = mysqli_fetch_object($result);
+    global $dbMssql, $tblPart2Kanban;
+    $query = "SELECT Top 1 * FROM {$tblPart2Kanban} WHERE {$name} LIKE CONCAT('%', kanban, '%')";
+    $result = sqlsrv_query($dbMssql, $query);
+    $dolly = sqlsrv_fetch_object($result);
     return $dolly;
 }
 
@@ -4350,23 +4354,23 @@ function get_dolly_by_name_delivery($name, $delivery)
 {
     global $db, $tblPart2Kanban;
     $query
-        = "SELECT * FROM {$tblPart2Kanban} WHERE kanban = '{$name}' AND delivery_address = '{$delivery}' LIMIT 1";
-    $result = $db->query($query);
-    $dolly = mysqli_fetch_object($result);
+        = "SELECT TOP 1 * FROM {$tblPart2Kanban} WHERE kanban = '{$name}' AND delivery_address = '{$delivery}'";
+    $result = sqlsrv_query($dbMssql, $query);
+    $dolly = sqlsrv_fetch_object($result);
     return $dolly;
 }
 
 function save_dolly($post_data)
 {
-    global $db, $tblDolly;
+    global $dbMssql, $tblDolly;
     $dolly_id = $post_data['dolly_id'];
     $dolly_name = $post_data['dolly_name'];
     $color = $post_data['color'];
     if ($dolly_id == 0) {
-        $query = "INSERT INTO {$tblDolly}  (`name`, `color`)
+        $query = "INSERT INTO {$tblDolly}  ([name], [color])
                     values ('{$dolly_name}', '{$color}')";
-        $result = $db->query($query);
-        $insert_id = $db->insert_id;
+        $result = sqlsrv_query($dbMssql, $query);
+        $insert_id = getLastInsertedId();
         echo '<tr id="tr_dolly_' . $insert_id . '">';
         echo '<td><input type="text" class="form-control dolly-name" name="dolly_name" value="'
             . $dolly_name . '"></td>';
@@ -4386,7 +4390,7 @@ function save_dolly($post_data)
         echo '</tr>';
     } else {
         $query
-            = "UPDATE {$tblDolly} SET `name` = '{$dolly_name}', `color` = '{$color}' WHERE `id` = {$dolly_id}";
+            = "UPDATE {$tblDolly} SET [name] = '{$dolly_name}', [color] = '{$color}' WHERE [id] = {$dolly_id}";
         $result = $db->query($query);
         if ($result) {
             echo 'Ok';
@@ -4398,13 +4402,13 @@ function save_dolly($post_data)
 
 function update_dolly($post_data)
 {
-    global $db, $tblDolly;
+    global $dbMssql, $tblDolly;
     $dolly_id = $post_data['dolly_id'];
     $field = $post_data['field'];
     $value = $post_data['value'];
     $update_query
-        = "UPDATE {$tblDolly} SET `{$field}` = '{$value}' WHERE id = {$dolly_id}";
-    $result = $db->query($update_query);
+        = "UPDATE {$tblDolly} SET [{$field}] = '{$value}' WHERE id = {$dolly_id}";
+    $result = sqlsrv_query($dbMssql, $update_query);
     if ($result) {
         echo 'Success';
     } else {
@@ -4414,10 +4418,10 @@ function update_dolly($post_data)
 
 function delete_dolly($post_data)
 {
-    global $db, $tblDolly;
+    global $dbMssql, $tblDolly;
     $dolly_id = $post_data['dolly_id'];
-    $query = "DELETE FROM {$tblDolly} WHERE `id` = {$dolly_id}";
-    $result = $db->query($query);
+    $query = "DELETE FROM {$tblDolly} WHERE [id] = {$dolly_id}";
+    $result = sqlsrv_query($dbMssql, $query);
     if ($result) {
         echo 'Ok';
     } else {
@@ -4442,10 +4446,10 @@ function get_all_reason()
 
 function get_reason_by_name($name)
 {
-    global $db, $tblReason;
-    $query = "SELECT * FROM {$tblReason} WHERE name = '{$name}' LIMIT 1";
-    $result = $db->query($query);
-    $reason = mysqli_fetch_object($result);
+    global $dbMssql, $tblReason;
+    $query = "SELECT TOP 1 * FROM {$tblReason} WHERE name = '{$name}'";
+    $result = sqlsrv_query($dbMssql, $query);
+    $reason = sqlsrv_fetch_object($result);
     return $reason;
 }
 
@@ -4511,11 +4515,11 @@ function delete_reason($post_data)
 
 function get_all_part2kanban()
 {
-    global $db, $tblPart2Kanban;
-    $query = "SELECT * FROM {$tblPart2Kanban} ORDER BY `kanban`";
-    $result = $db->query($query);
+    global $dbMssql, $tblPart2Kanban;
+    $query = "SELECT * FROM {$tblPart2Kanban} ORDER BY kanban";
+    $result = sqlsrv_query($dbMssql, $query);
     $kanban = [];
-    while ($item = mysqli_fetch_object($result)) {
+    while ($item = sqlsrv_fetch_object($result)) {
         array_push($kanban, $item);
     }
     return $kanban;
@@ -4702,10 +4706,14 @@ function get_system_fill_percentage($post_data)
     while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
         $ress[] = $row;
     }
-    if(count($ress) == 0) return;
-    $res = $ress[0];
-    $data['total'] = $res['total'];
-
+    if(count($ress) == 0) {
+        $data['total'] = 0;
+    }
+    else{
+        $res = $ress[0];
+        $data['total'] = $res['total'];
+    }
+    
     $query
         = "select sum(A.booked_in - A.booked_out) as filled from scan_log as A inner join parts as B on UPPER(A.part) = UPPER(B.part_no) AND B.sf = 1";
     $result = sqlsrv_query($dbMssql, $query);
@@ -4713,10 +4721,15 @@ function get_system_fill_percentage($post_data)
     while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
         $ress[] = $row;
     }
-    if(count($ress) == 0) return;
-    $res = $ress[0];
-    $data['filled'] = $res['filled'];
-
+    $res = [];
+    if(count($ress) == 0){
+        $data['filled'] = 0;    
+    }
+    else{
+        $res = $ress[0];
+        $data['filled'] = $res['filled'];
+    }
+    
     echo json_encode($data, true);
 }
 
@@ -4730,9 +4743,11 @@ function get_part_stocking_percentage($post_data)
     while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
         $ress[] = $row;
     }
-    if(count($ress) == 0) return;
-    $res = $ress[0];
-    $data['total'] = $res['total'];
+    if(count($ress) == 0) $data['total'] = 0;
+    else{
+        $res = $ress[0];
+        $data['total'] = $res['total'];
+    }
 
     $query
         = "select sum(A.booked_in - A.booked_out) as filled from scan_log as A inner join parts as B on UPPER(A.part) = UPPER(B.part_no) AND B.ps = 1";
@@ -4741,9 +4756,11 @@ function get_part_stocking_percentage($post_data)
     while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
         $ress[] = $row;
     }
-    if(count($ress) == 0) return;
-    $res = $ress[0];
-    $data['filled'] = $res['filled'];
+    if(count($ress) == 0) $data['filled'] = 0;
+    else{
+        $res = $ress[0];
+        $data['filled'] = $res['filled'];
+    }
 
     echo json_encode($data, true);
 }
@@ -4758,10 +4775,12 @@ function get_free_location_percentage($post_data)
     while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
         $ress[] = $row;
     }
-    if(count($ress) == 0) return;
-    $res = $ress[0];
-    $data['total'] = $res['total'];
-
+    if(count($ress) == 0) $data['total'] = 0;
+    else{
+        $res = $ress[0];
+        $data['total'] = $res['total'];    
+    }
+    
     $query
         = "select sum(A.booked_in - A.booked_out) as filled from scan_log as A inner join parts as B on UPPER(A.part) = UPPER(B.part_no) AND B.fl = 1";
     $result = sqlsrv_query($dbMssql, $query);        
@@ -4769,10 +4788,12 @@ function get_free_location_percentage($post_data)
     while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
         $ress[] = $row;
     }
-    if(count($ress) == 0) return;
-    $res = $ress[0];
-    $data['filled'] = $res['filled'];
-
+    if(count($ress) == 0) $data['filled'] = 0;
+    else{
+        $res = $ress[0];
+        $data['filled'] = $res['filled'];
+    }
+    
     echo json_encode($data, true);
 }
 
@@ -4912,10 +4933,13 @@ function get_pick_reason_chat_value($post_data)
     while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
         $ress[] = $row;
     }
-    if(count($ress) == 0) return;
-
-    $data['val'] = array_column($ress, "count");
-    $data['reason'] = array_column($ress, "name");
+    if(count($ress) == 0) {
+        $data['val'] = [];
+        $data['reason'];
+    }else{
+        $data['val'] = array_column($ress, "count");
+        $data['reason'] = array_column($ress, "name");
+    }
 
     echo json_encode($data, true);
 }
@@ -4931,10 +4955,13 @@ function get_delivery_reason_chat_value($post_data)
     while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
         $ress[] = $row;
     }
-    if(count($ress) == 0) return;
-
-    $data['val'] = array_column($ress, "count");
-    $data['reason'] = array_column($ress, "name");
+    if(count($ress) == 0) {
+        $data['val'] = [];
+        $data['reason'];
+    }else{
+        $data['val'] = array_column($ress, "count");
+        $data['reason'] = array_column($ress, "name");
+    }
 
     echo json_encode($data, true);
 }
@@ -5193,44 +5220,25 @@ function get_remaining_incomplete_pick_team_leader($post_data)
 function get_sequence_control_addon($post_data)
 {
     try {
-        global $db, $tblConveyancePicks;
+        global $dbMssql, $tblConveyancePicks;
 
         $today = $post_data['today'];
 
         $query
             = "SELECT count(*) as count, cycle,sum(is_help) as is_help, sum(is_completed) as is_completed, sum(is_delivered) as is_delivered  FROM conveyance_picks WHERE kanban_date='{$today}' GROUP BY cycle ORDER BY cycle";
-        $result = $db->query($query);
+        $result = sqlsrv_query($dbMssql, $query);
         // $res = mysqli_fetch_object($result);
-        $res = mysqli_fetch_all($result, MYSQLI_ASSOC);
+        $ress = [];
+
+        while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+            $ress[] = $row;
+        }
+        if(count($ress) == 0) $res = [];
+        else{
+            $res = $ress[0];
+        }
         $data["sequence"] = $res;
-
-        // $data['count'] = $res["count"];
-        // $data['cycle'] = $res["cycle"];
-        // $data['is_completed'] = $res["is_completed"];
-        // $data['is_delivered'] = $res["is_delivered"];
-        // $data['picking_count'] = $res["count"];
-        // $data['picking_count'] = $res["count"];
-
-        // $query = "SELECT count(*) as picking_count  FROM {$tblConveyancePicks} WHERE kanban_date = '{$today}' AND is_help=1";
-        // $result = $db->query($query);
-        // $res = mysqli_fetch_array($result);
-        // $picking_count =  $res['picking_count'];
-
-        // $query = "SELECT count(*) as delivered_count  FROM {$tblConveyancePicks} WHERE kanban_date = '{$today}' AND is_help=1 AND is_delivered=1";
-        // $result = $db->query($query);
-        // $res = mysqli_fetch_array($result);
-        // $delivered_count =  $res['delivered_count'];
-
-        // $query = "SELECT count(*) as picked_count  FROM {$tblConveyancePicks} WHERE kanban_date = '{$today}' AND is_help=1 AND is_completed=1";
-        // $result = $db->query($query);
-        // $res = mysqli_fetch_array($result);
-        // $picked_count =  $res['picked_count'];
-
         $cycle_setting = get_cycle_setting();
-
-        // $data['picking_count'] = $picking_count;
-        // $data['delivered_count'] = $delivered_count;
-        // $data['picked_count'] = $picked_count;
         $data['cycle_setting'] = $cycle_setting;
         $data['live_build'] = get_build_amount();
         echo json_encode($data, true);
@@ -5319,13 +5327,13 @@ function get_last_upload_time_team_leader($post_data)
         = "SELECT TOP 1 imported_at FROM {$tblConveyancePicks} ORDER BY imported_at DESC";
     $result = sqlsrv_query($dbMssql, $query);
     $res = sqlsrv_fetch_object($result);
-    $data['pick_del_plan'] = $res->imported_at;
+    $data['pick_del_plan'] = $res->imported_at->format('Y-m-d');
 
     $query
         = "SELECT TOP 1 imported_at FROM {$tblConveyancePicks} ORDER BY imported_at DESC";
     $result = sqlsrv_query($dbMssql, $query);
     $res = sqlsrv_fetch_object($result);
-    $data['master_kanban'] = $res->imported_at;
+    $data['master_kanban'] = $res->imported_at->format('Y-m-d');
 
     echo json_encode($data, true);
 }
@@ -5387,8 +5395,12 @@ function get_low_stocks($post_data)
     while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
         $ress[] = $row;
     }
-    if(count($ress) == 0) return;
-    $res_zones = $ress[0];
+    $res = [];
+    if(count($ress) == 0) $res = [];
+    else{
+        $res = $ress[0];
+    }
+    $res_zones = $res;
 
     $data['low_stocks'] = $res_zones;
 
@@ -5771,38 +5783,38 @@ function check_zone_finish($post_data)
     }
 }
 
-function complete_list($post_data)
-{
-    global $tblCompletedDate, $db;
-    $date = $post_data['date'];
-    if (isset($post_data['method'])) {
-        if ($post_data['method'] == "add") {
-            $query = "SELECT * FROM {$tblCompletedDate} WHERE date = '{$date}'";
-            $result = $db->query($query);
-            $num_rows = mysqli_num_rows($result);
-            if ($num_rows == 0) {
-                $insert_query = "INSERT INTO {$tblCompletedDate} (date) VALUES ('{$date}')";
-                $db->query($insert_query);
-            }
-            $new_date = date_create($date);
-            date_add($new_date, date_interval_create_from_date_string("1 days"));
-            $new_date = date_format($new_date, "Y-m-d");
-            echo $new_date;
-        } else {
-            $query = "DELETE FROM {$tblCompletedDate} WHERE `date` = '{$date}'";
-            $result = $db->query($query);
-            echo $date;
-        }
-    } else {
-        $query = "SELECT MAX(date) FROM {$tblCompletedDate}";
-        $result = $db->query($query);
-        if ($result->fetch_assoc()["MAX(date)"] != null) {
-            $new_date = date_create($result->fetch_assoc()["MAX(date)"] ?? 'now');
-            date_add($new_date, date_interval_create_from_date_string("1 days"));
-            $new_date = date_format($new_date, "Y-m-d");
-            return $new_date;
-        } else {
-            return $date;
-        }
-    }
-}
+// function complete_list($post_data)
+// {
+//     global $tblCompletedDate, $db;
+//     $date = $post_data['date'];
+//     if (isset($post_data['method'])) {
+//         if ($post_data['method'] == "add") {
+//             $query = "SELECT * FROM {$tblCompletedDate} WHERE date = '{$date}'";
+//             $result = $db->query($query);
+//             $num_rows = mysqli_num_rows($result);
+//             if ($num_rows == 0) {
+//                 $insert_query = "INSERT INTO {$tblCompletedDate} (date) VALUES ('{$date}')";
+//                 $db->query($insert_query);
+//             }
+//             $new_date = date_create($date);
+//             date_add($new_date, date_interval_create_from_date_string("1 days"));
+//             $new_date = date_format($new_date, "Y-m-d");
+//             echo $new_date;
+//         } else {
+//             $query = "DELETE FROM {$tblCompletedDate} WHERE `date` = '{$date}'";
+//             $result = $db->query($query);
+//             echo $date;
+//         }
+//     } else {
+//         $query = "SELECT MAX(date) FROM {$tblCompletedDate}";
+//         $result = $db->query($query);
+//         if ($result->fetch_assoc()["MAX(date)"] != null) {
+//             $new_date = date_create($result->fetch_assoc()["MAX(date)"] ?? 'now');
+//             date_add($new_date, date_interval_create_from_date_string("1 days"));
+//             $new_date = date_format($new_date, "Y-m-d");
+//             return $new_date;
+//         } else {
+//             return $date;
+//         }
+//     }
+// }

@@ -38,13 +38,6 @@ $tblOverstock = 'overstock';
 $tblExcelPick = 'excel_pick_import';
 $tblCompletedDate = "complete_list";
 
-$db = new mysqli($DB_HOST, $DB_USER, $DB_PASSWORD, $DB_NAME);
-// Check connection
-if (mysqli_connect_errno()) {
-    echo "Failed to connect to MySQL: " . mysqli_connect_error();
-    exit;
-}
-
 /**
  * MSSQL CONNECT 
  * */
