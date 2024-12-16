@@ -16,31 +16,31 @@ $users = array();
 
 if(!empty($username)){
     $query = "SELECT * FROM {$tblUsers} WHERE username = '{$username}'";
-    $result = $db->query($query);
-    $user = mysqli_num_rows($result);
+    $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+    $user = sqlsrv_num_rows($result);
     if($user) {
         $sql = "select username, ID, staff from {$tblUsers} where username = '{$username}'";
-        $result =$db->query($sql);
-        $res = mysqli_fetch_assoc($result);
+        $result = sqlsrv_query($dbMssql, $sql);
+        $res = sqlsrv_fetch_object($result);
         $user_info = array(
-            'username' => $res['username'],
-            'user_id' => $res['ID'],
-            'staff' => $res['staff'],
+            'username' => $res->username,
+            'user_id' => $res->ID,
+            'staff' => $res->staff,
         );
         $_SESSION['user'] = $user_info;
     }
 } else {
     $query = "SELECT * FROM {$tblUsers} WHERE staff = '{$member_no}'";
-    $result = $db->query($query);
-    $user = mysqli_num_rows($result);
+    $result = sqlsrv_query($dbMssql, $query, [], ["Scrollable" => SQLSRV_CURSOR_KEYSET]);
+    $user = sqlsrv_num_rows($result);
     if($user) {
         $sql = "select username, ID, staff from {$tblUsers} where staff = '{$member_no}'";
-        $result =$db->query($sql);
-        $res = mysqli_fetch_assoc($result);
+        $result = sqlsrv_query($dbMssql, $sql);
+        $res = sqlsrv_fetch_object($result);
         $user_info = array(
-            'username' => $res['username'],
-            'user_id' => $res['ID'],
-            'staff' => $res['staff'],
+            'username' => $res->username,
+            'user_id' => $res->ID,
+            'staff' => $res->staff,
         );
         $_SESSION['user'] = $user_info;
     }
